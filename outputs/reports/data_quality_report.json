@@ -1,0 +1,48 @@
+{
+  "raw_rows": 30223,
+  "clean_rows": 30128,
+  "duplicates_removed": 59,
+  "invalid_date_rows": 45,
+  "invalid_posting_dates": 45,
+  "repaired_posting_dates": 45,
+  "invalid_amount_rows": 36,
+  "unbalanced_rows": 45,
+  "orphan_vendor_rows": 36,
+  "account_name_mismatches": 30,
+  "currency_normalised_rows": 34,
+  "missing_values": {
+    "invoice_id": 14489,
+    "account_name": 38,
+    "vendor_id": 11705,
+    "vendor_name": 11705,
+    "employee_id": 21373,
+    "employee_name": 21373,
+    "department": 35,
+    "payment_method": 31,
+    "description": 51,
+    "approved_by": 38,
+    "invoice_time": 14489,
+    "payment_time": 14489,
+    "anomaly_type": 29303
+  },
+  "date_range": [
+    "2024-01-01",
+    "2026-01-03"
+  ],
+  "total_transactions": 30128,
+  "total_transaction_amount": 4443451721.66,
+  "unique_vendors": 409,
+  "unique_accounts": 18,
+  "unique_employees": 104,
+  "repair_log": [
+    "Normalised 34 messy currency codes to ISO 4217.",
+    "Rebuilt 45 posting dates from the transaction date.",
+    "Removed 36 vouchers with a missing, zero or negative amount.",
+    "Removed 59 exact duplicate rows.",
+    "Repaired 30 account names from the chart of accounts.",
+    "Flagged 36 vouchers referencing an unknown vendor (master-data gap).",
+    "Flagged 45 unbalanced vouchers (debit leg != credit leg)."
+  ],
+  "total_issues": 285,
+  "issue_rate_pct": 0.943
+}

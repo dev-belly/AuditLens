@@ -1,0 +1,33 @@
+# AuditLens - runtime dependencies
+#
+# Requires Python 3.11 or newer (the code uses PEP 604 unions and PEP 585
+# generics throughout).
+#
+# Built and tested against exactly:
+#   pandas 3.0.5      numpy 2.5.3        scikit-learn 1.9.0   scipy 1.18.1
+#   matplotlib 3.11.1 plotly 7.0.0       streamlit 1.63.0     sqlalchemy 2.0.54
+#   pyarrow 25.0.1
+#
+# The floors below are the oldest releases the code is known to work with; the
+# caps exist because pandas 3 and Streamlit 1.x both changed behaviour that this
+# project depends on (nullable dtypes, `format="mixed"` date parsing,
+# `st.navigation`).
+
+# --- Data handling ---------------------------------------------------------
+pandas>=3.0,<4.0
+numpy>=2.0,<3.0
+pyarrow>=17.0,<26.0
+
+# --- Modelling -------------------------------------------------------------
+scikit-learn>=1.5,<2.0
+scipy>=1.13,<2.0
+
+# --- Visualisation ---------------------------------------------------------
+matplotlib>=3.9,<4.0
+plotly>=6.0,<8.0
+
+# --- Dashboard -------------------------------------------------------------
+streamlit>=1.40,<2.0
+
+# --- Storage ---------------------------------------------------------------
+sqlalchemy>=2.0,<3.0

@@ -1,0 +1,78 @@
+{
+  "model": "IsolationForest",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_samples": "auto",
+    "contamination": 0.03,
+    "random_state": 42,
+    "scaler": "StandardScaler"
+  },
+  "feature_columns": [
+    "amount",
+    "log_amount",
+    "amount_percentile",
+    "vendor_transaction_count",
+    "vendor_average_amount",
+    "vendor_total_amount",
+    "vendor_amount_ratio",
+    "vendor_max_amount",
+    "vendor_age_days",
+    "days_since_last_transaction",
+    "account_transaction_frequency",
+    "is_weekend",
+    "is_round_amount",
+    "days_since_vendor_registration",
+    "approval_time_hours",
+    "payment_delay_hours",
+    "same_vendor_daily_transactions",
+    "description_length",
+    "is_self_approval",
+    "near_approval_threshold"
+  ],
+  "n_features": 20,
+  "imputed_features": {
+    "vendor_age_days": 2146.0,
+    "days_since_last_transaction": 8.0,
+    "days_since_vendor_registration": 2146.0,
+    "payment_delay_hours": 396.745
+  },
+  "evaluation": {
+    "n_samples": 30128,
+    "n_anomalies": 919,
+    "n_flagged": 904,
+    "true_positives": 263,
+    "false_positives": 641,
+    "false_negatives": 656,
+    "precision": 0.2909,
+    "recall": 0.2862,
+    "f1": 0.2885,
+    "roc_auc": 0.8162,
+    "average_precision": 0.2006,
+    "confusion_matrix": [
+      [
+        28568,
+        641
+      ],
+      [
+        656,
+        263
+      ]
+    ],
+    "precision_at_k": {
+      "top_0.5%": 0.4702,
+      "top_1.0%": 0.3821,
+      "top_2.0%": 0.3333,
+      "top_5.0%": 0.2072,
+      "top_10.0%": 0.1447
+    },
+    "recall_at_k": {
+      "top_0.5%": 0.0773,
+      "top_1.0%": 0.1251,
+      "top_2.0%": 0.2187,
+      "top_5.0%": 0.3395,
+      "top_10.0%": 0.4744
+    },
+    "threshold": 0.583165
+  },
+  "note": "Metrics are measured against anomalies deliberately injected into the synthetic ledger. They are an upper bound on real-world performance: injected anomalies follow known patterns, whereas genuine irregularities do not announce themselves."
+}

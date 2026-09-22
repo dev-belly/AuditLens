@@ -1,0 +1,20 @@
+[theme]
+# Audit-report palette. Muted navy reads as "professional services" rather than
+# "startup dashboard", which matters when the audience is an audit partner.
+primaryColor = "#1F4E79"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F7F9FB"
+textColor = "#1B2A38"
+font = "sans serif"
+
+[server]
+headless = true
+fileWatcherType = "auto"
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+showErrorDetails = true
+toolbarMode = "minimal"

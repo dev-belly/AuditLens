@@ -1,0 +1,57 @@
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Virtual environments --------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+
+# --- Test and coverage artefacts -------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# --- Type checkers and linters ---------------------------------------------
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+
+# --- Jupyter ---------------------------------------------------------------
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+*.nbconvert.ipynb
+
+# --- Editors and OS --------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Generated data --------------------------------------------------------
+# The pipeline is reproducible from src/data_generator.py with RANDOM_SEED = 42,
+# so the ledger itself is not version controlled. The reports and charts under
+# outputs/ ARE committed: they are the evidence behind the README.
+data/raw/
+data/processed/
+data/*.db
+data/*.db-journal
+
+# --- Environment -----------------------------------------------------------
+.env
+.env.*
+!.env.example

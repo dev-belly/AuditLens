@@ -1,0 +1,1170 @@
+{
+  "first_digit_test": {
+    "test_name": "first_digit",
+    "label": "First-digit test",
+    "n_observations": 30128,
+    "min_amount": 10.0,
+    "mad": 0.002182,
+    "chi_square": 16.0031,
+    "degrees_of_freedom": 8,
+    "p_value": 0.0423359,
+    "conformity": "Close conformity",
+    "risk_indicator": 0.0727,
+    "interpretation": "The digit distribution is consistent with Benford's Law across 30,128 values. No further digit-level testing is indicated on this population.",
+    "caveat": "Benford's Law is an analytical procedure, not a test for fraud. A deviation identifies a population that deserves disaggregation and enquiry; it does not establish that anything is wrong."
+  },
+  "first_two_digits_test": {
+    "test_name": "first_two_digits",
+    "label": "First-two-digits test",
+    "n_observations": 30128,
+    "min_amount": 10.0,
+    "mad": 0.000711,
+    "chi_square": 196.0854,
+    "degrees_of_freedom": 89,
+    "p_value": 4.9461e-10,
+    "conformity": "Close conformity",
+    "risk_indicator": 0.0237,
+    "interpretation": "The digit distribution is consistent with Benford's Law across 30,128 values. No further digit-level testing is indicated on this population.",
+    "caveat": "Benford's Law is an analytical procedure, not a test for fraud. A deviation identifies a population that deserves disaggregation and enquiry; it does not establish that anything is wrong."
+  },
+  "first_digit_table": [
+    {
+      "digit": 1,
+      "observed_count": 8884,
+      "observed_frequency": 0.294875,
+      "expected_frequency": 0.30103,
+      "deviation": -0.006155,
+      "z_score": -2.329,
+      "significant": true
+    },
+    {
+      "digit": 2,
+      "observed_count": 5364,
+      "observed_frequency": 0.17804,
+      "expected_frequency": 0.17609,
+      "deviation": 0.00195,
+      "z_score": 0.889,
+      "significant": false
+    },
+    {
+      "digit": 3,
+      "observed_count": 3753,
+      "observed_frequency": 0.124569,
+      "expected_frequency": 0.12494,
+      "deviation": -0.000371,
+      "z_score": -0.195,
+      "significant": false
+    },
+    {
+      "digit": 4,
+      "observed_count": 3030,
+      "observed_frequency": 0.100571,
+      "expected_frequency": 0.09691,
+      "deviation": 0.003661,
+      "z_score": 2.148,
+      "significant": true
+    },
+    {
+      "digit": 5,
+      "observed_count": 2360,
+      "observed_frequency": 0.078332,
+      "expected_frequency": 0.07918,
+      "deviation": -0.000848,
+      "z_score": -0.545,
+      "significant": false
+    },
+    {
+      "digit": 6,
+      "observed_count": 2095,
+      "observed_frequency": 0.069537,
+      "expected_frequency": 0.06695,
+      "deviation": 0.002587,
+      "z_score": 1.796,
+      "significant": false
+    },
+    {
+      "digit": 7,
+      "observed_count": 1796,
+      "observed_frequency": 0.059612,
+      "expected_frequency": 0.05799,
+      "deviation": 0.001622,
+      "z_score": 1.205,
+      "significant": false
+    },
+    {
+      "digit": 8,
+      "observed_count": 1527,
+      "observed_frequency": 0.050684,
+      "expected_frequency": 0.05115,
+      "deviation": -0.000466,
+      "z_score": -0.367,
+      "significant": false
+    },
+    {
+      "digit": 9,
+      "observed_count": 1319,
+      "observed_frequency": 0.04378,
+      "expected_frequency": 0.04576,
+      "deviation": -0.00198,
+      "z_score": -1.645,
+      "significant": false
+    }
+  ],
+  "first_two_digits_table": [
+    {
+      "digit": 10,
+      "observed_count": 1325,
+      "observed_frequency": 0.043979,
+      "expected_frequency": 0.041393,
+      "deviation": 0.002586,
+      "z_score": 2.254,
+      "significant": true
+    },
+    {
+      "digit": 11,
+      "observed_count": 1080,
+      "observed_frequency": 0.035847,
+      "expected_frequency": 0.037789,
+      "deviation": -0.001942,
+      "z_score": -1.767,
+      "significant": false
+    },
+    {
+      "digit": 12,
+      "observed_count": 1064,
+      "observed_frequency": 0.035316,
+      "expected_frequency": 0.034762,
+      "deviation": 0.000554,
+      "z_score": 0.525,
+      "significant": false
+    },
+    {
+      "digit": 13,
+      "observed_count": 875,
+      "observed_frequency": 0.029043,
+      "expected_frequency": 0.032185,
+      "deviation": -0.003142,
+      "z_score": -3.09,
+      "significant": true
+    },
+    {
+      "digit": 14,
+      "observed_count": 878,
+      "observed_frequency": 0.029142,
+      "expected_frequency": 0.029963,
+      "deviation": -0.000821,
+      "z_score": -0.836,
+      "significant": false
+    },
+    {
+      "digit": 15,
+      "observed_count": 776,
+      "observed_frequency": 0.025757,
+      "expected_frequency": 0.028029,
+      "deviation": -0.002272,
+      "z_score": -2.389,
+      "significant": true
+    },
+    {
+      "digit": 16,
+      "observed_count": 748,
+      "observed_frequency": 0.024827,
+      "expected_frequency": 0.026329,
+      "deviation": -0.001502,
+      "z_score": -1.628,
+      "significant": false
+    },
+    {
+      "digit": 17,
+      "observed_count": 824,
+      "observed_frequency": 0.02735,
+      "expected_frequency": 0.024824,
+      "deviation": 0.002526,
+      "z_score": 2.818,
+      "significant": true
+    },
+    {
+      "digit": 18,
+      "observed_count": 668,
+      "observed_frequency": 0.022172,
+      "expected_frequency": 0.023481,
+      "deviation": -0.001309,
+      "z_score": -1.5,
+      "significant": false
+    },
+    {
+      "digit": 19,
+      "observed_count": 646,
+      "observed_frequency": 0.021442,
+      "expected_frequency": 0.022276,
+      "deviation": -0.000835,
+      "z_score": -0.982,
+      "significant": false
+    },
+    {
+      "digit": 20,
+      "observed_count": 599,
+      "observed_frequency": 0.019882,
+      "expected_frequency": 0.021189,
+      "deviation": -0.001307,
+      "z_score": -1.576,
+      "significant": false
+    },
+    {
+      "digit": 21,
+      "observed_count": 568,
+      "observed_frequency": 0.018853,
+      "expected_frequency": 0.020203,
+      "deviation": -0.00135,
+      "z_score": -1.666,
+      "significant": false
+    },
+    {
+      "digit": 22,
+      "observed_count": 645,
+      "observed_frequency": 0.021409,
+      "expected_frequency": 0.019305,
+      "deviation": 0.002104,
+      "z_score": 2.654,
+      "significant": true
+    },
+    {
+      "digit": 23,
+      "observed_count": 516,
+      "observed_frequency": 0.017127,
+      "expected_frequency": 0.018483,
+      "deviation": -0.001356,
+      "z_score": -1.748,
+      "significant": false
+    },
+    {
+      "digit": 24,
+      "observed_count": 542,
+      "observed_frequency": 0.01799,
+      "expected_frequency": 0.017729,
+      "deviation": 0.000261,
+      "z_score": 0.343,
+      "significant": false
+    },
+    {
+      "digit": 25,
+      "observed_count": 493,
+      "observed_frequency": 0.016364,
+      "expected_frequency": 0.017033,
+      "deviation": -0.00067,
+      "z_score": -0.899,
+      "significant": false
+    },
+    {
+      "digit": 26,
+      "observed_count": 494,
+      "observed_frequency": 0.016397,
+      "expected_frequency": 0.01639,
+      "deviation": 6e-06,
+      "z_score": 0.009,
+      "significant": false
+    },
+    {
+      "digit": 27,
+      "observed_count": 502,
+      "observed_frequency": 0.016662,
+      "expected_frequency": 0.015794,
+      "deviation": 0.000868,
+      "z_score": 1.208,
+      "significant": false
+    },
+    {
+      "digit": 28,
+      "observed_count": 543,
+      "observed_frequency": 0.018023,
+      "expected_frequency": 0.01524,
+      "deviation": 0.002783,
+      "z_score": 3.943,
+      "significant": true
+    },
+    {
+      "digit": 29,
+      "observed_count": 462,
+      "observed_frequency": 0.015335,
+      "expected_frequency": 0.014723,
+      "deviation": 0.000611,
+      "z_score": 0.881,
+      "significant": false
+    },
+    {
+      "digit": 30,
+      "observed_count": 374,
+      "observed_frequency": 0.012414,
+      "expected_frequency": 0.01424,
+      "deviation": -0.001827,
+      "z_score": -2.676,
+      "significant": true
+    },
+    {
+      "digit": 31,
+      "observed_count": 427,
+      "observed_frequency": 0.014173,
+      "expected_frequency": 0.013788,
+      "deviation": 0.000385,
+      "z_score": 0.572,
+      "significant": false
+    },
+    {
+      "digit": 32,
+      "observed_count": 369,
+      "observed_frequency": 0.012248,
+      "expected_frequency": 0.013364,
+      "deviation": -0.001116,
+      "z_score": -1.687,
+      "significant": false
+    },
+    {
+      "digit": 33,
+      "observed_count": 392,
+      "observed_frequency": 0.013011,
+      "expected_frequency": 0.012965,
+      "deviation": 4.6e-05,
+      "z_score": 0.071,
+      "significant": false
+    },
+    {
+      "digit": 34,
+      "observed_count": 374,
+      "observed_frequency": 0.012414,
+      "expected_frequency": 0.012589,
+      "deviation": -0.000175,
+      "z_score": -0.273,
+      "significant": false
+    },
+    {
+      "digit": 35,
+      "observed_count": 440,
+      "observed_frequency": 0.014604,
+      "expected_frequency": 0.012234,
+      "deviation": 0.00237,
+      "z_score": 3.742,
+      "significant": true
+    },
+    {
+      "digit": 36,
+      "observed_count": 363,
+      "observed_frequency": 0.012049,
+      "expected_frequency": 0.011899,
+      "deviation": 0.000149,
+      "z_score": 0.239,
+      "significant": false
+    },
+    {
+      "digit": 37,
+      "observed_count": 330,
+      "observed_frequency": 0.010953,
+      "expected_frequency": 0.011582,
+      "deviation": -0.000629,
+      "z_score": -1.02,
+      "significant": false
+    },
+    {
+      "digit": 38,
+      "observed_count": 351,
+      "observed_frequency": 0.01165,
+      "expected_frequency": 0.011281,
+      "deviation": 0.000369,
+      "z_score": 0.607,
+      "significant": false
+    },
+    {
+      "digit": 39,
+      "observed_count": 333,
+      "observed_frequency": 0.011053,
+      "expected_frequency": 0.010995,
+      "deviation": 5.7e-05,
+      "z_score": 0.096,
+      "significant": false
+    },
+    {
+      "digit": 40,
+      "observed_count": 355,
+      "observed_frequency": 0.011783,
+      "expected_frequency": 0.010724,
+      "deviation": 0.001059,
+      "z_score": 1.785,
+      "significant": false
+    },
+    {
+      "digit": 41,
+      "observed_count": 311,
+      "observed_frequency": 0.010323,
+      "expected_frequency": 0.010465,
+      "deviation": -0.000143,
+      "z_score": -0.244,
+      "significant": false
+    },
+    {
+      "digit": 42,
+      "observed_count": 275,
+      "observed_frequency": 0.009128,
+      "expected_frequency": 0.010219,
+      "deviation": -0.001091,
+      "z_score": -1.884,
+      "significant": false
+    },
+    {
+      "digit": 43,
+      "observed_count": 297,
+      "observed_frequency": 0.009858,
+      "expected_frequency": 0.009984,
+      "deviation": -0.000126,
+      "z_score": -0.22,
+      "significant": false
+    },
+    {
+      "digit": 44,
+      "observed_count": 307,
+      "observed_frequency": 0.01019,
+      "expected_frequency": 0.00976,
+      "deviation": 0.00043,
+      "z_score": 0.759,
+      "significant": false
+    },
+    {
+      "digit": 45,
+      "observed_count": 306,
+      "observed_frequency": 0.010157,
+      "expected_frequency": 0.009545,
+      "deviation": 0.000611,
+      "z_score": 1.091,
+      "significant": false
+    },
+    {
+      "digit": 46,
+      "observed_count": 289,
+      "observed_frequency": 0.009592,
+      "expected_frequency": 0.00934,
+      "deviation": 0.000252,
+      "z_score": 0.455,
+      "significant": false
+    },
+    {
+      "digit": 47,
+      "observed_count": 287,
+      "observed_frequency": 0.009526,
+      "expected_frequency": 0.009143,
+      "deviation": 0.000383,
+      "z_score": 0.698,
+      "significant": false
+    },
+    {
+      "digit": 48,
+      "observed_count": 300,
+      "observed_frequency": 0.009958,
+      "expected_frequency": 0.008955,
+      "deviation": 0.001003,
+      "z_score": 1.847,
+      "significant": false
+    },
+    {
+      "digit": 49,
+      "observed_count": 303,
+      "observed_frequency": 0.010057,
+      "expected_frequency": 0.008774,
+      "deviation": 0.001283,
+      "z_score": 2.388,
+      "significant": true
+    },
+    {
+      "digit": 50,
+      "observed_count": 256,
+      "observed_frequency": 0.008497,
+      "expected_frequency": 0.0086,
+      "deviation": -0.000103,
+      "z_score": -0.194,
+      "significant": false
+    },
+    {
+      "digit": 51,
+      "observed_count": 234,
+      "observed_frequency": 0.007767,
+      "expected_frequency": 0.008433,
+      "deviation": -0.000666,
+      "z_score": -1.265,
+      "significant": false
+    },
+    {
+      "digit": 52,
+      "observed_count": 240,
+      "observed_frequency": 0.007966,
+      "expected_frequency": 0.008273,
+      "deviation": -0.000307,
+      "z_score": -0.587,
+      "significant": false
+    },
+    {
+      "digit": 53,
+      "observed_count": 219,
+      "observed_frequency": 0.007269,
+      "expected_frequency": 0.008118,
+      "deviation": -0.000849,
+      "z_score": -1.642,
+      "significant": false
+    },
+    {
+      "digit": 54,
+      "observed_count": 242,
+      "observed_frequency": 0.008032,
+      "expected_frequency": 0.007969,
+      "deviation": 6.3e-05,
+      "z_score": 0.124,
+      "significant": false
+    },
+    {
+      "digit": 55,
+      "observed_count": 257,
+      "observed_frequency": 0.00853,
+      "expected_frequency": 0.007825,
+      "deviation": 0.000705,
+      "z_score": 1.389,
+      "significant": false
+    },
+    {
+      "digit": 56,
+      "observed_count": 228,
+      "observed_frequency": 0.007568,
+      "expected_frequency": 0.007687,
+      "deviation": -0.000119,
+      "z_score": -0.237,
+      "significant": false
+    },
+    {
+      "digit": 57,
+      "observed_count": 229,
+      "observed_frequency": 0.007601,
+      "expected_frequency": 0.007553,
+      "deviation": 4.8e-05,
+      "z_score": 0.096,
+      "significant": false
+    },
+    {
+      "digit": 58,
+      "observed_count": 230,
+      "observed_frequency": 0.007634,
+      "expected_frequency": 0.007424,
+      "deviation": 0.00021,
+      "z_score": 0.425,
+      "significant": false
+    },
+    {
+      "digit": 59,
+      "observed_count": 225,
+      "observed_frequency": 0.007468,
+      "expected_frequency": 0.007299,
+      "deviation": 0.000169,
+      "z_score": 0.344,
+      "significant": false
+    },
+    {
+      "digit": 60,
+      "observed_count": 229,
+      "observed_frequency": 0.007601,
+      "expected_frequency": 0.007179,
+      "deviation": 0.000422,
+      "z_score": 0.868,
+      "significant": false
+    },
+    {
+      "digit": 61,
+      "observed_count": 237,
+      "observed_frequency": 0.007866,
+      "expected_frequency": 0.007062,
+      "deviation": 0.000805,
+      "z_score": 1.668,
+      "significant": false
+    },
+    {
+      "digit": 62,
+      "observed_count": 225,
+      "observed_frequency": 0.007468,
+      "expected_frequency": 0.006949,
+      "deviation": 0.000519,
+      "z_score": 1.085,
+      "significant": false
+    },
+    {
+      "digit": 63,
+      "observed_count": 196,
+      "observed_frequency": 0.006506,
+      "expected_frequency": 0.006839,
+      "deviation": -0.000334,
+      "z_score": -0.703,
+      "significant": false
+    },
+    {
+      "digit": 64,
+      "observed_count": 203,
+      "observed_frequency": 0.006738,
+      "expected_frequency": 0.006733,
+      "deviation": 5e-06,
+      "z_score": 0.01,
+      "significant": false
+    },
+    {
+      "digit": 65,
+      "observed_count": 217,
+      "observed_frequency": 0.007203,
+      "expected_frequency": 0.006631,
+      "deviation": 0.000572,
+      "z_score": 1.223,
+      "significant": false
+    },
+    {
+      "digit": 66,
+      "observed_count": 182,
+      "observed_frequency": 0.006041,
+      "expected_frequency": 0.006531,
+      "deviation": -0.00049,
+      "z_score": -1.056,
+      "significant": false
+    },
+    {
+      "digit": 67,
+      "observed_count": 232,
+      "observed_frequency": 0.0077,
+      "expected_frequency": 0.006434,
+      "deviation": 0.001266,
+      "z_score": 2.749,
+      "significant": true
+    },
+    {
+      "digit": 68,
+      "observed_count": 193,
+      "observed_frequency": 0.006406,
+      "expected_frequency": 0.00634,
+      "deviation": 6.6e-05,
+      "z_score": 0.144,
+      "significant": false
+    },
+    {
+      "digit": 69,
+      "observed_count": 181,
+      "observed_frequency": 0.006008,
+      "expected_frequency": 0.006249,
+      "deviation": -0.000241,
+      "z_score": -0.531,
+      "significant": false
+    },
+    {
+      "digit": 70,
+      "observed_count": 206,
+      "observed_frequency": 0.006837,
+      "expected_frequency": 0.00616,
+      "deviation": 0.000677,
+      "z_score": 1.502,
+      "significant": false
+    },
+    {
+      "digit": 71,
+      "observed_count": 177,
+      "observed_frequency": 0.005875,
+      "expected_frequency": 0.006074,
+      "deviation": -0.000199,
+      "z_score": -0.445,
+      "significant": false
+    },
+    {
+      "digit": 72,
+      "observed_count": 192,
+      "observed_frequency": 0.006373,
+      "expected_frequency": 0.00599,
+      "deviation": 0.000382,
+      "z_score": 0.86,
+      "significant": false
+    },
+    {
+      "digit": 73,
+      "observed_count": 168,
+      "observed_frequency": 0.005576,
+      "expected_frequency": 0.005909,
+      "deviation": -0.000333,
+      "z_score": -0.753,
+      "significant": false
+    },
+    {
+      "digit": 74,
+      "observed_count": 189,
+      "observed_frequency": 0.006273,
+      "expected_frequency": 0.00583,
+      "deviation": 0.000444,
+      "z_score": 1.012,
+      "significant": false
+    },
+    {
+      "digit": 75,
+      "observed_count": 226,
+      "observed_frequency": 0.007501,
+      "expected_frequency": 0.005752,
+      "deviation": 0.001749,
+      "z_score": 4.014,
+      "significant": true
+    },
+    {
+      "digit": 76,
+      "observed_count": 181,
+      "observed_frequency": 0.006008,
+      "expected_frequency": 0.005677,
+      "deviation": 0.000331,
+      "z_score": 0.764,
+      "significant": false
+    },
+    {
+      "digit": 77,
+      "observed_count": 159,
+      "observed_frequency": 0.005277,
+      "expected_frequency": 0.005604,
+      "deviation": -0.000326,
+      "z_score": -0.759,
+      "significant": false
+    },
+    {
+      "digit": 78,
+      "observed_count": 158,
+      "observed_frequency": 0.005244,
+      "expected_frequency": 0.005532,
+      "deviation": -0.000288,
+      "z_score": -0.674,
+      "significant": false
+    },
+    {
+      "digit": 79,
+      "observed_count": 140,
+      "observed_frequency": 0.004647,
+      "expected_frequency": 0.005463,
+      "deviation": -0.000816,
+      "z_score": -1.922,
+      "significant": false
+    },
+    {
+      "digit": 80,
+      "observed_count": 185,
+      "observed_frequency": 0.00614,
+      "expected_frequency": 0.005395,
+      "deviation": 0.000745,
+      "z_score": 1.766,
+      "significant": false
+    },
+    {
+      "digit": 81,
+      "observed_count": 153,
+      "observed_frequency": 0.005078,
+      "expected_frequency": 0.005329,
+      "deviation": -0.000251,
+      "z_score": -0.597,
+      "significant": false
+    },
+    {
+      "digit": 82,
+      "observed_count": 178,
+      "observed_frequency": 0.005908,
+      "expected_frequency": 0.005264,
+      "deviation": 0.000644,
+      "z_score": 1.544,
+      "significant": false
+    },
+    {
+      "digit": 83,
+      "observed_count": 140,
+      "observed_frequency": 0.004647,
+      "expected_frequency": 0.005201,
+      "deviation": -0.000554,
+      "z_score": -1.338,
+      "significant": false
+    },
+    {
+      "digit": 84,
+      "observed_count": 149,
+      "observed_frequency": 0.004946,
+      "expected_frequency": 0.00514,
+      "deviation": -0.000194,
+      "z_score": -0.471,
+      "significant": false
+    },
+    {
+      "digit": 85,
+      "observed_count": 126,
+      "observed_frequency": 0.004182,
+      "expected_frequency": 0.00508,
+      "deviation": -0.000897,
+      "z_score": -2.191,
+      "significant": true
+    },
+    {
+      "digit": 86,
+      "observed_count": 154,
+      "observed_frequency": 0.005112,
+      "expected_frequency": 0.005021,
+      "deviation": 9.1e-05,
+      "z_score": 0.223,
+      "significant": false
+    },
+    {
+      "digit": 87,
+      "observed_count": 155,
+      "observed_frequency": 0.005145,
+      "expected_frequency": 0.004963,
+      "deviation": 0.000181,
+      "z_score": 0.448,
+      "significant": false
+    },
+    {
+      "digit": 88,
+      "observed_count": 154,
+      "observed_frequency": 0.005112,
+      "expected_frequency": 0.004907,
+      "deviation": 0.000204,
+      "z_score": 0.507,
+      "significant": false
+    },
+    {
+      "digit": 89,
+      "observed_count": 133,
+      "observed_frequency": 0.004414,
+      "expected_frequency": 0.004853,
+      "deviation": -0.000438,
+      "z_score": -1.094,
+      "significant": false
+    },
+    {
+      "digit": 90,
+      "observed_count": 142,
+      "observed_frequency": 0.004713,
+      "expected_frequency": 0.004799,
+      "deviation": -8.6e-05,
+      "z_score": -0.215,
+      "significant": false
+    },
+    {
+      "digit": 91,
+      "observed_count": 102,
+      "observed_frequency": 0.003386,
+      "expected_frequency": 0.004746,
+      "deviation": -0.001361,
+      "z_score": -3.437,
+      "significant": true
+    },
+    {
+      "digit": 92,
+      "observed_count": 133,
+      "observed_frequency": 0.004414,
+      "expected_frequency": 0.004695,
+      "deviation": -0.000281,
+      "z_score": -0.713,
+      "significant": false
+    },
+    {
+      "digit": 93,
+      "observed_count": 142,
+      "observed_frequency": 0.004713,
+      "expected_frequency": 0.004645,
+      "deviation": 6.8e-05,
+      "z_score": 0.174,
+      "significant": false
+    },
+    {
+      "digit": 94,
+      "observed_count": 150,
+      "observed_frequency": 0.004979,
+      "expected_frequency": 0.004596,
+      "deviation": 0.000383,
+      "z_score": 0.983,
+      "significant": false
+    },
+    {
+      "digit": 95,
+      "observed_count": 119,
+      "observed_frequency": 0.00395,
+      "expected_frequency": 0.004548,
+      "deviation": -0.000598,
+      "z_score": -1.542,
+      "significant": false
+    },
+    {
+      "digit": 96,
+      "observed_count": 130,
+      "observed_frequency": 0.004315,
+      "expected_frequency": 0.004501,
+      "deviation": -0.000186,
+      "z_score": -0.481,
+      "significant": false
+    },
+    {
+      "digit": 97,
+      "observed_count": 151,
+      "observed_frequency": 0.005012,
+      "expected_frequency": 0.004454,
+      "deviation": 0.000558,
+      "z_score": 1.453,
+      "significant": false
+    },
+    {
+      "digit": 98,
+      "observed_count": 128,
+      "observed_frequency": 0.004249,
+      "expected_frequency": 0.004409,
+      "deviation": -0.000161,
+      "z_score": -0.421,
+      "significant": false
+    },
+    {
+      "digit": 99,
+      "observed_count": 122,
+      "observed_frequency": 0.004049,
+      "expected_frequency": 0.004365,
+      "deviation": -0.000315,
+      "z_score": -0.83,
+      "significant": false
+    }
+  ],
+  "by_account": [
+    {
+      "account_code": "2211",
+      "n_observations": 1454,
+      "total_amount": 848914786.83,
+      "mad": 0.035403,
+      "chi_square": 187.2741,
+      "p_value": 3.04881e-36,
+      "conformity": "Nonconformity",
+      "risk_indicator": 1.0
+    },
+    {
+      "account_code": "660205",
+      "n_observations": 1202,
+      "total_amount": 171110333.05,
+      "mad": 0.010534,
+      "chi_square": 17.2562,
+      "p_value": 0.0275491,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3511
+    },
+    {
+      "account_code": "660206",
+      "n_observations": 1182,
+      "total_amount": 23529825.13,
+      "mad": 0.010135,
+      "chi_square": 16.0339,
+      "p_value": 0.0418973,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3378
+    },
+    {
+      "account_code": "1601",
+      "n_observations": 614,
+      "total_amount": 300617370.89,
+      "mad": 0.009971,
+      "chi_square": 9.404,
+      "p_value": 0.309367,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3324
+    },
+    {
+      "account_code": "2221",
+      "n_observations": 588,
+      "total_amount": 131379666.51,
+      "mad": 0.008521,
+      "chi_square": 5.1393,
+      "p_value": 0.74259,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.284
+    },
+    {
+      "account_code": "660203",
+      "n_observations": 1248,
+      "total_amount": 10659828.06,
+      "mad": 0.007592,
+      "chi_square": 9.6606,
+      "p_value": 0.289658,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.2531
+    },
+    {
+      "account_code": "660201",
+      "n_observations": 3357,
+      "total_amount": 47931272.28,
+      "mad": 0.004575,
+      "chi_square": 8.6105,
+      "p_value": 0.376215,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1525
+    },
+    {
+      "account_code": "6401",
+      "n_observations": 2356,
+      "total_amount": 232341814.24,
+      "mad": 0.00439,
+      "chi_square": 7.1285,
+      "p_value": 0.522829,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1463
+    },
+    {
+      "account_code": "660202",
+      "n_observations": 2753,
+      "total_amount": 26047077.33,
+      "mad": 0.003943,
+      "chi_square": 8.1947,
+      "p_value": 0.414684,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1314
+    },
+    {
+      "account_code": "1403",
+      "n_observations": 4802,
+      "total_amount": 570119987.52,
+      "mad": 0.00356,
+      "chi_square": 7.9727,
+      "p_value": 0.436141,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1187
+    },
+    {
+      "account_code": "1122",
+      "n_observations": 4410,
+      "total_amount": 1119436900.5,
+      "mad": 0.003501,
+      "chi_square": 7.3701,
+      "p_value": 0.497276,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1167
+    },
+    {
+      "account_code": "2202",
+      "n_observations": 6108,
+      "total_amount": 956603954.98,
+      "mad": 0.002982,
+      "chi_square": 6.684,
+      "p_value": 0.571078,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.0994
+    }
+  ],
+  "by_process": [
+    {
+      "process": "payroll",
+      "n_observations": 1454,
+      "total_amount": 848914786.83,
+      "mad": 0.035403,
+      "chi_square": 187.2741,
+      "p_value": 3.04881e-36,
+      "conformity": "Nonconformity",
+      "risk_indicator": 1.0
+    },
+    {
+      "process": "consulting",
+      "n_observations": 1205,
+      "total_amount": 171310204.56,
+      "mad": 0.010491,
+      "chi_square": 17.0705,
+      "p_value": 0.0293834,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3497
+    },
+    {
+      "process": "utilities",
+      "n_observations": 1182,
+      "total_amount": 23529825.13,
+      "mad": 0.010135,
+      "chi_square": 16.0339,
+      "p_value": 0.0418973,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3378
+    },
+    {
+      "process": "fixed_asset",
+      "n_observations": 614,
+      "total_amount": 300617370.89,
+      "mad": 0.009971,
+      "chi_square": 9.404,
+      "p_value": 0.309367,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.3324
+    },
+    {
+      "process": "tax_payment",
+      "n_observations": 588,
+      "total_amount": 131379666.51,
+      "mad": 0.008521,
+      "chi_square": 5.1393,
+      "p_value": 0.74259,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.284
+    },
+    {
+      "process": "entertainment",
+      "n_observations": 1248,
+      "total_amount": 10659828.06,
+      "mad": 0.007592,
+      "chi_square": 9.6606,
+      "p_value": 0.289658,
+      "conformity": "Acceptable conformity",
+      "risk_indicator": 0.2531
+    },
+    {
+      "process": "travel",
+      "n_observations": 3357,
+      "total_amount": 47931272.28,
+      "mad": 0.004575,
+      "chi_square": 8.6105,
+      "p_value": 0.376215,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1525
+    },
+    {
+      "process": "cost_of_sales",
+      "n_observations": 2356,
+      "total_amount": 232341814.24,
+      "mad": 0.00439,
+      "chi_square": 7.1285,
+      "p_value": 0.522829,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1463
+    },
+    {
+      "process": "office_expense",
+      "n_observations": 2763,
+      "total_amount": 26089216.43,
+      "mad": 0.004008,
+      "chi_square": 8.2073,
+      "p_value": 0.41349,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1336
+    },
+    {
+      "process": "procurement",
+      "n_observations": 4816,
+      "total_amount": 570854461.0,
+      "mad": 0.003526,
+      "chi_square": 7.7416,
+      "p_value": 0.459105,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1175
+    },
+    {
+      "process": "sales",
+      "n_observations": 4410,
+      "total_amount": 1119436900.5,
+      "mad": 0.003501,
+      "chi_square": 7.3701,
+      "p_value": 0.497276,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.1167
+    },
+    {
+      "process": "vendor_payment",
+      "n_observations": 6135,
+      "total_amount": 960386375.23,
+      "mad": 0.002964,
+      "chi_square": 6.7547,
+      "p_value": 0.563313,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.0988
+    }
+  ],
+  "scope_note": "Only the debit leg is tested. Each voucher is stored once, with debit_amount equal to credit_amount, so the debit leg is the voucher value."
+}

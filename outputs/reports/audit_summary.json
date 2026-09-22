@@ -1,0 +1,178 @@
+{
+  "population": {
+    "total_transactions": 30128,
+    "total_amount": 4443451721.66,
+    "date_range": [
+      "2024-01-01",
+      "2026-01-03"
+    ],
+    "unique_vendors": 409,
+    "unique_accounts": 18,
+    "unique_employees": 104
+  },
+  "triage": {
+    "flagged_by_rules": 2208,
+    "flagged_by_rules_pct": 7.329,
+    "high_or_critical": 255,
+    "high_or_critical_pct": 0.846,
+    "high_or_critical_amount": 267015001.83,
+    "average_risk_score": 14.64,
+    "risk_level_counts": {
+      "Low": 28261,
+      "Medium": 1612,
+      "High": 254,
+      "Critical": 1
+    },
+    "risk_level_amounts": {
+      "Low": 3453451915.31,
+      "Medium": 722984804.52,
+      "High": 265765001.83,
+      "Critical": 1250000.0
+    }
+  },
+  "rules": {
+    "total_alerts": 2475,
+    "distinct_rules_triggered": 9,
+    "alerts_per_rule": {
+      "Weekend / Holiday Posting": 765,
+      "Large Round Amount": 505,
+      "Unusual Vendor": 501,
+      "Split Transaction": 179,
+      "Suspicious Description": 147,
+      "Self Approval": 126,
+      "Duplicate Payment": 108,
+      "Rapid Payment": 90,
+      "Rare Account Usage": 54
+    },
+    "amount_per_rule": {
+      "Duplicate Payment": 14745768.32,
+      "Large Round Amount": 681510000.0,
+      "Rapid Payment": 9772813.94,
+      "Rare Account Usage": 4758904.34,
+      "Self Approval": 16871689.44,
+      "Split Transaction": 8495562.77,
+      "Suspicious Description": 18225666.37,
+      "Unusual Vendor": 401719089.08,
+      "Weekend / Holiday Posting": 109956795.04
+    }
+  },
+  "machine_learning": {
+    "model": "IsolationForest",
+    "flagged": 904,
+    "precision": 0.2909,
+    "recall": 0.2862,
+    "f1": 0.2885,
+    "roc_auc": 0.8162,
+    "average_precision": 0.2006,
+    "precision_at_k": {
+      "top_0.5%": 0.4702,
+      "top_1.0%": 0.3821,
+      "top_2.0%": 0.3333,
+      "top_5.0%": 0.2072,
+      "top_10.0%": 0.1447
+    },
+    "recall_at_k": {
+      "top_0.5%": 0.0773,
+      "top_1.0%": 0.1251,
+      "top_2.0%": 0.2187,
+      "top_5.0%": 0.3395,
+      "top_10.0%": 0.4744
+    },
+    "flagged_by_model_only": 244,
+    "flagged_by_both": 660,
+    "anomaly_overlap": {
+      "injected_anomalies": 919,
+      "caught_by_rule": 902,
+      "caught_by_model": 263,
+      "caught_by_both": 261,
+      "caught_by_model_only": 2,
+      "caught_by_rule_only": 641,
+      "caught_by_neither": 15,
+      "rule_coverage_pct": 98.15
+    }
+  },
+  "benford": {
+    "first_digit": {
+      "test_name": "first_digit",
+      "label": "First-digit test",
+      "n_observations": 30128,
+      "min_amount": 10.0,
+      "mad": 0.002182,
+      "chi_square": 16.0031,
+      "degrees_of_freedom": 8,
+      "p_value": 0.0423359,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.0727,
+      "interpretation": "The digit distribution is consistent with Benford's Law across 30,128 values. No further digit-level testing is indicated on this population.",
+      "caveat": "Benford's Law is an analytical procedure, not a test for fraud. A deviation identifies a population that deserves disaggregation and enquiry; it does not establish that anything is wrong."
+    },
+    "first_two_digits": {
+      "test_name": "first_two_digits",
+      "label": "First-two-digits test",
+      "n_observations": 30128,
+      "min_amount": 10.0,
+      "mad": 0.000711,
+      "chi_square": 196.0854,
+      "degrees_of_freedom": 89,
+      "p_value": 4.9461e-10,
+      "conformity": "Close conformity",
+      "risk_indicator": 0.0237,
+      "interpretation": "The digit distribution is consistent with Benford's Law across 30,128 values. No further digit-level testing is indicated on this population.",
+      "caveat": "Benford's Law is an analytical procedure, not a test for fraud. A deviation identifies a population that deserves disaggregation and enquiry; it does not establish that anything is wrong."
+    }
+  },
+  "data_quality": {
+    "raw_rows": 30223,
+    "clean_rows": 30128,
+    "duplicates_removed": 59,
+    "invalid_date_rows": 45,
+    "invalid_posting_dates": 45,
+    "repaired_posting_dates": 45,
+    "invalid_amount_rows": 36,
+    "unbalanced_rows": 45,
+    "orphan_vendor_rows": 36,
+    "account_name_mismatches": 30,
+    "currency_normalised_rows": 34,
+    "missing_values": {
+      "invoice_id": 14489,
+      "account_name": 38,
+      "vendor_id": 11705,
+      "vendor_name": 11705,
+      "employee_id": 21373,
+      "employee_name": 21373,
+      "department": 35,
+      "payment_method": 31,
+      "description": 51,
+      "approved_by": 38,
+      "invoice_time": 14489,
+      "payment_time": 14489,
+      "anomaly_type": 29303
+    },
+    "date_range": [
+      "2024-01-01",
+      "2026-01-03"
+    ],
+    "total_transactions": 30128,
+    "total_transaction_amount": 4443451721.66,
+    "unique_vendors": 409,
+    "unique_accounts": 18,
+    "unique_employees": 104,
+    "repair_log": [
+      "Normalised 34 messy currency codes to ISO 4217.",
+      "Rebuilt 45 posting dates from the transaction date.",
+      "Removed 36 vouchers with a missing, zero or negative amount.",
+      "Removed 59 exact duplicate rows.",
+      "Repaired 30 account names from the chart of accounts.",
+      "Flagged 36 vouchers referencing an unknown vendor (master-data gap).",
+      "Flagged 45 unbalanced vouchers (debit leg != credit leg)."
+    ],
+    "total_issues": 285,
+    "issue_rate_pct": 0.943
+  },
+  "top_risk_vendor": {
+    "vendor_id": "V00392",
+    "vendor_name": "Kunlun Media Holdings",
+    "vendor_risk_score": 73.8,
+    "alert_count": 3
+  }
+}
