@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from dashboard.common import (
+    GROUND_TRUTH_LABEL,
     RISK_BAND_COLORS,
     THEME,
     count,
@@ -374,10 +375,10 @@ state the recall it buys, and let the engagement partner decide.
             "dashboard is conditioned on it.</div>",
             unsafe_allow_html=True,
         )
-        if "anomaly_label" in frame.columns:
+        if GROUND_TRUTH_LABEL in frame.columns:
             # ``astype(bool)`` would read the text "0" as truthy and mark every
             # voucher as an anomaly; ``as_flag_series`` coerces through numeric.
-            truth = as_flag_series(frame["anomaly_label"])
+            truth = as_flag_series(frame[GROUND_TRUTH_LABEL])
             summary = (
                 frame.assign(injected=truth)
                 .groupby("injected")["anomaly_score"]

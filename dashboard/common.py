@@ -12,9 +12,16 @@ Data sources, in order of preference:
 2. ``data/processed/*.parquet`` - used when the warehouse has not been built yet,
    so the dashboard still works after a partial pipeline run.
 
-Ground truth (``anomaly_label`` / ``anomaly_type``) is never read into a page.
-It exists in the warehouse so the model evaluation can be reproduced, not so the
-dashboard can cheat: an auditor does not get told the answer.
+Ground truth (``anomaly_label`` / ``anomaly_type``) exists in the warehouse so the
+model evaluation can be reproduced. It is not available to an auditor: no page
+renders it per voucher, and the one place it is read - the benchmark diagnostic on
+the Machine Learning page - is collapsed inside an expander that states in the
+surrounding text that the labels would not exist on a live engagement. Everything
+else the dashboard shows is conditioned only on the pipeline's own output.
+
+The list of protected columns lives in ``src.database.GROUND_TRUTH_COLUMNS`` and is
+imported here rather than restated, so there is one definition to keep correct.
+``tests/test_dashboard.py`` asserts that the grid builders cannot render them.
 """
 
 from __future__ import annotations
@@ -34,7 +41,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.database import query
+from src.database import GROUND_TRUTH_COLUMNS, GROUND_TRUTH_LABEL, query
 from src.utils import (
     AUDIT_SUMMARY_REPORT,
     BENFORD_RESULTS_JSON,
@@ -76,8 +83,10 @@ RISK_BAND_COLORS: dict[str, str] = {
     "Critical": "#B22222",
 }
 
-#: Ground-truth columns. Kept in the warehouse for reproducibility only.
-GROUND_TRUTH_COLUMNS: tuple[str, ...] = ("anomaly_label", "anomaly_type")
+#: Ground-truth columns, imported from the warehouse module so there is exactly one
+#: definition. See ``src.database.GROUND_TRUTH_COLUMNS`` for why they are kept at
+#: all. Anything that builds a table for an auditor must exclude these; the grid
+#: builders in ``components.py`` are tested against this tuple.
 
 
 def inject_css() -> None:

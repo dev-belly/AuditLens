@@ -18,6 +18,7 @@ import re
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -25,6 +26,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from dashboard.components import transaction_table_frame
+from src.database import GROUND_TRUTH_COLUMNS, GROUND_TRUTH_LABEL
 from src.utils import SCORED_TRANSACTIONS
 
 #: Page modules, keyed by the label shown in the sidebar.
@@ -340,8 +343,10 @@ class TestPageContent:
 class TestNoGroundTruthLeak:
     """The dashboard must never reveal the injected answer key."""
 
-    #: Column names that only exist because the anomalies were injected.
-    FORBIDDEN: tuple[str, ...] = ("anomaly_label", "anomaly_type")
+    #: Column names that only exist because the anomalies were injected. Taken from
+    #: the warehouse module rather than restated, so adding a new ground-truth
+    #: column there is automatically covered by the guard below.
+    FORBIDDEN: tuple[str, ...] = GROUND_TRUTH_COLUMNS
 
     @pytest.mark.parametrize("label", list(VIEW_MODULES))
     def test_ground_truth_columns_are_never_rendered(
@@ -381,3 +386,83 @@ class TestNoGroundTruthLeak:
 
         assert "anomaly_label" in text
         assert "only after the fact" in text
+
+
+class TestTransactionGridColumns:
+    """The voucher grid is the one an auditor reads row by row.
+
+    The render tests above prove that no page *currently* shows the answer key. These
+    tests are the cheaper, more durable half: they pin the grid builder itself, so a
+    column added to the pipeline cannot reach the grid by default. ``transaction_table``
+    lists its columns explicitly rather than slicing ``frame.columns``, and that
+    property is what makes the guarantee hold for columns nobody has thought of yet.
+    """
+
+    @staticmethod
+    def _ledger(**extra: object) -> pd.DataFrame:
+        """A minimal scored ledger, plus whatever extra columns a test wants."""
+        base = {
+            "transaction_id": ["T1", "T2"],
+            "transaction_date": pd.to_datetime(["2025-03-01", "2025-03-02"]),
+            "account_code": ["6601", "6602"],
+            "account_name": ["Expense", "Expense"],
+            "vendor_name": ["Acme", None],
+            "department": ["Finance", None],
+            "debit_amount": [1000.0, 2500.0],
+            "rule_alert_count": [2, 0],
+            "anomaly_score": [0.71, 0.12],
+            "audit_risk_score": [88.5, 12.0],
+            "risk_level": ["Critical", "Low"],
+        }
+        return pd.DataFrame({**base, **extra})
+
+    def test_the_grid_excludes_every_ground_truth_column(self) -> None:
+        frame = self._ledger(anomaly_label=["1", "0"], anomaly_type=["self_approval", None])
+
+        columns = set(transaction_table_frame(frame).columns)
+
+        assert not columns & set(GROUND_TRUTH_COLUMNS), (
+            "the voucher grid rendered a ground-truth column"
+        )
+
+    def test_the_grid_ignores_columns_it_does_not_know_about(self) -> None:
+        """An explicit column list, not ``frame.columns``.
+
+        This is the property that makes the guard durable: a future pipeline column
+        cannot appear in the grid without someone deliberately adding it.
+        """
+        frame = self._ledger(anomaly_label=["1", "0"], injected_by="seed_42", leak_me="oops")
+
+        columns = set(transaction_table_frame(frame).columns)
+
+        assert "injected_by" not in columns
+        assert "leak_me" not in columns
+
+    def test_the_grid_renders_the_expected_audit_columns(self) -> None:
+        """Guard against the whitelist silently shrinking."""
+        columns = list(transaction_table_frame(self._ledger()).columns)
+
+        assert columns == [
+            "Transaction",
+            "Date",
+            "Account",
+            "Vendor",
+            "Department",
+            "Amount (CNY)",
+            "Alerts",
+            "ML score",
+            "Risk score",
+            "Risk",
+        ]
+
+    def test_the_ground_truth_constant_has_a_single_definition(self) -> None:
+        """The dashboard must import the tuple, not restate it.
+
+        Three copies of the same list is how one of them goes stale: a new
+        ground-truth column would be added to the warehouse module and silently not
+        guarded anywhere else.
+        """
+        from dashboard import common
+
+        assert common.GROUND_TRUTH_COLUMNS is GROUND_TRUTH_COLUMNS
+        assert GROUND_TRUTH_LABEL in GROUND_TRUTH_COLUMNS

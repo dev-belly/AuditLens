@@ -311,14 +311,17 @@ def donut_chart(labels: Sequence[str], values: Sequence[float], *, height: int =
 # --------------------------------------------------------------------------- #
 # Tables
 # --------------------------------------------------------------------------- #
-def transaction_table(
-    frame: pd.DataFrame,
-    *,
-    height: int = 520,
-    key: str | None = None,
-) -> None:
-    """Render the standard transaction grid used by the explorer and rule views."""
-    display = pd.DataFrame(
+def transaction_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Build the standard transaction grid as a plain frame.
+
+    Split out from :func:`transaction_table` so the column set is testable without
+    rendering. That matters because this grid is the one an auditor reads voucher by
+    voucher, and it must never carry a ground-truth column: the columns are listed
+    explicitly rather than taken from ``frame.columns``, so adding a column to the
+    pipeline cannot silently widen what an auditor sees. ``tests/test_dashboard.py``
+    asserts the result against ``src.database.GROUND_TRUTH_COLUMNS``.
+    """
+    return pd.DataFrame(
         {
             "Transaction": frame["transaction_id"].astype(str),
             "Date": pd.to_datetime(frame["transaction_date"]).dt.strftime("%Y-%m-%d"),
@@ -332,6 +335,16 @@ def transaction_table(
             "Risk": frame["risk_level"].map(risk_badge),
         }
     )
+
+
+def transaction_table(
+    frame: pd.DataFrame,
+    *,
+    height: int = 520,
+    key: str | None = None,
+) -> None:
+    """Render the standard transaction grid used by the explorer and rule views."""
+    display = transaction_table_frame(frame)
     st.dataframe(
         display,
         width="stretch",

@@ -103,6 +103,19 @@ They are written to the warehouse so the evaluation is reproducible, and the
 dashboard never selects them. `tests/test_dashboard.py::TestNoGroundTruthLeak`
 enforces that, because "we remembered not to show it" is not a control.
 
+Enforcement works at two levels, because they fail differently:
+
+| Level | Test | What it catches |
+|---|---|---|
+| Rendered output | `test_ground_truth_columns_are_never_rendered` | A page that starts showing the labels today |
+| The grid builder | `test_the_grid_ignores_columns_it_does_not_know_about` | A column added to the pipeline *later*, reaching the grid by default |
+
+The second is the durable one. `transaction_table` lists its columns explicitly
+rather than slicing `frame.columns`, so a new column cannot appear in the voucher
+grid without someone deliberately adding it. The list of protected names lives once,
+in `src.database.GROUND_TRUTH_COLUMNS`, and the dashboard imports it — three copies
+of the same tuple is how one of them goes stale.
+
 ### Rules and the model: measured, not assumed, to be complementary
 
 The rules encode what auditors already know how to look for. The Isolation Forest is

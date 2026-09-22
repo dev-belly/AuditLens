@@ -69,7 +69,18 @@ TABLE_SCHEMA: dict[str, str] = {
 
 #: Columns that must not be selected by auditor-facing queries. They exist in the
 #: warehouse for reproducibility of the model evaluation, not for decision-making.
+#:
+#: This is the single definition. ``dashboard/common.py`` imports it rather than
+#: restating it, so a new ground-truth column only has to be added in one place.
+#: ``tests/test_dashboard.py`` asserts that the dashboard's grid builders cannot
+#: render any of these, and ``sql/audit_queries.sql`` states in its header that it
+#: selects none of them.
 GROUND_TRUTH_COLUMNS: tuple[str, ...] = ("anomaly_label", "anomaly_type")
+
+#: The binary label specifically, named separately so callers that grade the model
+#: do not have to index into the tuple above. ``anomaly_type`` is the finer-grained
+#: class and is not needed for precision/recall.
+GROUND_TRUTH_LABEL: str = "anomaly_label"
 
 
 def get_engine(db_path: Path = DB_PATH) -> Engine:

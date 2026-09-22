@@ -52,7 +52,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **289 tests**, all passing — including in-process render tests for all six dashboard pages |
+| Test suite | **293 tests**, all passing — including in-process render tests for all six dashboard pages |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -617,7 +617,7 @@ cell before writing the file** — so a notebook that does not run cannot be com
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 289 tests
+python -m pytest tests/ -q     # 293 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -625,7 +625,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-289 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
+293 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
 render suite.
 
 | File | Tests | What it pins down |
@@ -634,14 +634,14 @@ render suite.
 | `test_audit_rules.py` | 36 | One class per procedure, plus the text-encoded-label fallback in `evaluate()` |
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
-| `test_dashboard.py` | 58 | Renders all six pages in-process via `AppTest` and asserts on the text each one emits |
+| `test_dashboard.py` | 62 | Renders all six pages in-process via `AppTest` and asserts on the text each one emits; also pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
 | `test_reporting.py` | 6 | The flag-vs-anomaly distinction in `detector_overlap` |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 
-Three of these are regression guards for bugs that were actually shipped during
-development — the reproducibility defect, the inert Benford flag, and the
-string-encoded label. `docs/methodology.md` documents each one.
+Four of these are regression guards for bugs that were actually shipped during
+development — the reproducibility defect, the inert Benford flag, the string-encoded
+label, and the overstated model contribution. `docs/methodology.md` documents each one.
 
 ## License
 
