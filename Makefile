@@ -9,11 +9,11 @@ PIP ?= $(PYTHON) -m pip
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev pipeline generate clean test test-fast coverage \
-        dashboard sql lint verify
+        dashboard sql lint verify screenshots
 
 help:  ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 install:  ## Install runtime dependencies
 	$(PIP) install -r requirements.txt
@@ -32,6 +32,19 @@ sql:  ## Build the SQLite warehouse and run the analyst queries
 
 dashboard:  ## Launch the Streamlit dashboard
 	$(PYTHON) -m streamlit run dashboard/app.py
+
+screenshots:  ## Start the dashboard, capture all six pages, then stop it
+	@PORT=8520; \
+	$(PYTHON) -m streamlit run dashboard/app.py --server.port $$PORT \
+		--server.address 127.0.0.1 --server.headless true > /tmp/auditlens-streamlit.log 2>&1 & \
+	STPID=$$!; \
+	trap 'kill $$STPID 2>/dev/null' EXIT; \
+	echo "waiting for the dashboard on port $$PORT ..."; \
+	for i in $$(seq 1 60); do \
+		sleep 2; \
+		if [ "$$(curl -s --noproxy '*' -m 3 http://127.0.0.1:$$PORT/_stcore/health 2>/dev/null)" = "ok" ]; then break; fi; \
+	done; \
+	$(PYTHON) tools/capture_screenshots.py --port $$PORT
 
 test:  ## Run the full test suite
 	$(PYTHON) -m pytest tests/ -v
