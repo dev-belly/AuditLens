@@ -204,6 +204,16 @@ up in production, so it is handled in one place.
 - **Constraint tests** assert the properties the project promises: no ground truth
   in the UI, a reason for every flag, weights that sum to one, scores that stay in
   range.
+- **Artefact tests** (`test_notebooks`) check the committed notebooks rather than the
+  code that builds them: that every cell which prints or plots carries output, that each
+  notebook embeds a chart, and that no random table id or logged timestamp survives. A
+  notebook is the one artefact here that can be silently *empty* — the build succeeds, the
+  file is valid, and it renders as code with nothing underneath. `test_ci_summary` is the
+  same idea for the CI job summary, and `test_reproducibility` for the generator.
+- **Artefact stability.** The notebooks are built twice in development and diffed. They
+  are deliberately *not* diffed in CI: the embedded charts are rendered with whatever CJK
+  font the runner has, so their PNG bytes legitimately differ from the macOS ones. Only
+  `outputs/reports/` is held to the byte-identical standard across operating systems.
 
 ## What the architecture deliberately does not include
 
