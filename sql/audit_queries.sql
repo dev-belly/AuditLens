@@ -1,7 +1,7 @@
 -- ============================================================================
 -- AuditLens - analyst query library
 -- ============================================================================
--- Fourteen queries an audit team would actually run against the warehouse.
+-- Fifteen queries an audit team would actually run against the warehouse.
 -- Each statement is named with a `-- name:` marker so that `src/database.py`
 -- can execute the file and label the results.
 --

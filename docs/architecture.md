@@ -210,6 +210,13 @@ up in production, so it is handled in one place.
   notebook is the one artefact here that can be silently *empty* — the build succeeds, the
   file is valid, and it renders as code with nothing underneath. `test_ci_summary` is the
   same idea for the CI job summary, and `test_reproducibility` for the generator.
+- **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
+  against the built warehouse and assert each returns rows. `run_sql_file` deliberately
+  surfaces a failure rather than raising — it logs and returns an empty frame — so without
+  these tests a query naming a column that no longer exists would leave the library
+  quietly short and the pipeline green. The same file pins the count the documentation
+  states, because that count had already drifted once (the SQL header said "Fourteen
+  queries" while the file held fifteen).
 - **Artefact stability.** The notebooks are built twice in development and diffed. They
   are deliberately *not* diffed in CI: the embedded charts are rendered with whatever CJK
   font the runner has, so their PNG bytes legitimately differ from the macOS ones. Only
