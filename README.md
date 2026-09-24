@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 381](https://img.shields.io/badge/tests-381%20passing-brightgreen.svg)](#testing)
+[![Tests: 386](https://img.shields.io/badge/tests-386%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **381 tests**, all passing — including in-process render tests for all six dashboard pages |
+| Test suite | **386 tests**, including dashboard render and warehouse integrity checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -494,7 +494,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 381 tests, incl. cross-process reproducibility
+├── tests/                       # 386 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -507,7 +507,7 @@ AuditLens/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 381 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 386 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -676,7 +676,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 381 tests
+python -m pytest tests/ -q     # 386 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -684,8 +684,8 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-381 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
-render suite.
+386 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
+then runs the full suite. `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
@@ -702,6 +702,7 @@ render suite.
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
 | `test_documentation.py` | 8 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total |
 | `test_readme_claims.py` | 20 | Every headline figure, all nine rules' flagged/precision/recall, the Benford table, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
+| `test_warehouse_contract.py` | 5 | Rejects partial SQLite builds, preserves a usable warehouse when rebuilding fails, surfaces broken analyst queries, and checks persisted row counts |
 
 Six of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded

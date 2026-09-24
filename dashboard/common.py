@@ -140,14 +140,23 @@ def inject_css() -> None:
 # Data access
 # --------------------------------------------------------------------------- #
 def warehouse_ready() -> bool:
-    """Return ``True`` when the SQLite warehouse exists and is populated."""
+    """Return ``True`` only for a usable, populated SQLite warehouse.
+
+    A failed or interrupted build can leave a ``transactions`` table with zero
+    rows. In that case the dashboard should use the scored parquet file instead
+    of presenting an empty engagement as a successful one.
+    """
     if not DB_PATH.exists():
         return False
     try:
         tables = query("SELECT name FROM sqlite_master WHERE type='table'")
+        if not {"transactions", "vendors", "employees", "audit_alerts"}.issubset(
+            set(tables["name"])
+        ):
+            return False
+        return int(query("SELECT COUNT(*) AS n FROM transactions")["n"].iloc[0]) > 0
     except Exception:
         return False
-    return "transactions" in set(tables["name"])
 
 
 def _load_transactions() -> pd.DataFrame:

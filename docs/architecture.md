@@ -82,7 +82,7 @@ one of them fails at 2am.
 | 5 | `benford` | features | `benford_results.json` | First-digit and first-two-digits, plus disaggregation |
 | 6 | `anomaly_detection` | features | `anomaly_score`, `model_metrics.json` | Isolation Forest + `StandardScaler` |
 | 7 | `risk_scoring` | rules + ML + Benford | `transactions_scored.parquet`, `vendor_risk.parquet` | 0–100 composite, `risk_reasons` |
-| 8 | `database` | scored parquet | `data/auditlens.db` | 5 tables, 7 indexes, 15 analyst queries |
+| 8 | `database` | scored parquet | `data/auditlens.db` | 5 tables, 7 indexes, 15 analyst queries; staged rebuild checked before replacement |
 | 9 | `reporting` | scored parquet | `outputs/charts/*.png`, `audit_summary.json`, `high_risk_transactions.csv` | The artefacts that get circulated |
 
 ## Design decisions worth defending

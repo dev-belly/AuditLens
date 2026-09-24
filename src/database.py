@@ -11,7 +11,8 @@ Schema
     One row per voucher, carrying the rule flags, the ML anomaly score and the
     final Audit Risk Score. The ground-truth columns (``anomaly_label``,
     ``anomaly_type``) are written too, because the benchmark is needed to
-    reproduce the model evaluation - the dashboard simply never selects them.
+    reproduce the model evaluation - the dashboard only uses the label in an
+    explicitly marked aggregate benchmark diagnostic, never a voucher grid.
 ``vendors``
     Vendor master data joined to the aggregated vendor risk score.
 ``employees``
@@ -29,10 +30,13 @@ Usage::
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import sys
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 if __package__ in (None, ""):  # allows `python src/database.py`
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -87,6 +91,36 @@ def get_engine(db_path: Path = DB_PATH) -> Engine:
     """Create a SQLAlchemy engine for the AuditLens warehouse."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return create_engine(f"sqlite:///{db_path}", future=True)
+
+
+@contextmanager
+def _staging_engine() -> Iterator[Engine]:
+    """Build a complete database before replacing the dashboard's live file.
+
+    Rebuilding tables in place can leave a partially populated or corrupt
+    warehouse after an interrupted run. The previous successful build stays
+    available until SQLite has closed and checked the staged replacement.
+    """
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(
+        prefix=".auditlens-build-", suffix=".db", dir=DB_PATH.parent
+    )
+    os.close(descriptor)
+    staged = Path(name)
+    engine: Engine | None = None
+    try:
+        engine = get_engine(staged)
+        yield engine
+        engine.dispose()
+        with sqlite3.connect(staged) as connection:
+            check = connection.execute("PRAGMA quick_check").fetchone()[0]
+        if check != "ok":
+            raise RuntimeError(f"Staged SQLite warehouse failed quick_check: {check}")
+        os.replace(staged, DB_PATH)
+    finally:
+        if engine is not None:
+            engine.dispose()
+        staged.unlink(missing_ok=True)
 
 
 #: Column types SQLite cannot bind. ``risk_reasons`` / ``rule_reasons`` are the
@@ -176,7 +210,24 @@ def load_warehouse(
     if summary is None and AUDIT_SUMMARY_REPORT.exists():
         summary = load_json(AUDIT_SUMMARY_REPORT)
 
-    engine = get_engine()
+    with _staging_engine() as engine:
+        counts = _populate_warehouse(
+            engine, transactions, vendor_risk, employees, alerts, summary
+        )
+
+    LOGGER.info("Warehouse built at %s: %s", DB_PATH, counts)
+    return counts
+
+
+def _populate_warehouse(
+    engine: Engine,
+    transactions: pd.DataFrame,
+    vendor_risk: pd.DataFrame,
+    employees: pd.DataFrame,
+    alerts: pd.DataFrame,
+    summary: dict[str, Any] | None,
+) -> dict[str, int]:
+    """Write all tables and indexes to a disposable staging database."""
     counts: dict[str, int] = {}
 
     with engine.begin() as connection:
@@ -235,10 +286,13 @@ def load_warehouse(
     employees.to_sql("employees", engine, if_exists="replace", index=False, chunksize=2_000)
     counts["employees"] = len(employees)
 
-    if not alerts.empty:
-        alerts_sql = alerts.copy()
-        alerts_sql.insert(0, "alert_id", range(1, len(alerts_sql) + 1))
-        alerts_sql.to_sql("audit_alerts", engine, if_exists="replace", index=False, chunksize=5_000)
+    alerts_sql = alerts.copy()
+    if alerts_sql.empty and not len(alerts_sql.columns):
+        alerts_sql = pd.DataFrame(
+            columns=["transaction_id", "rule_key", "rule_label", "rule_score", "risk_reason"]
+        )
+    alerts_sql.insert(0, "alert_id", range(1, len(alerts_sql) + 1))
+    alerts_sql.to_sql("audit_alerts", engine, if_exists="replace", index=False, chunksize=5_000)
     counts["audit_alerts"] = len(alerts)
 
     if summary:
@@ -262,7 +316,6 @@ def load_warehouse(
         ):
             connection.execute(text(statement))
 
-    LOGGER.info("Warehouse built at %s: %s", DB_PATH, counts)
     return counts
 
 
@@ -304,7 +357,8 @@ def run_sql_file(path: Path = SQL_DIR / "audit_queries.sql") -> dict[str, pd.Dat
         path: Path to the SQL file.
 
     Returns:
-        Mapping of query name to result dataframe.
+        Mapping of query name to result dataframe. A broken query aborts the
+        pipeline, so a missing result cannot be confused with an empty finding.
     """
     if not path.exists():
         raise FileNotFoundError(f"SQL file not found: {path}")
@@ -318,9 +372,8 @@ def run_sql_file(path: Path = SQL_DIR / "audit_queries.sql") -> dict[str, pd.Dat
         for name, statement in statements:
             try:
                 results[name] = pd.read_sql_query(text(statement), connection)
-            except Exception as exc:  # surfaced rather than swallowed
-                LOGGER.error("Query '%s' failed: %s", name, exc)
-                results[name] = pd.DataFrame()
+            except Exception as exc:
+                raise RuntimeError(f"Analyst query '{name}' failed") from exc
 
     LOGGER.info("Executed %s SQL queries from %s", len(results), path.name)
     return results
