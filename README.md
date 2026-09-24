@@ -1,5 +1,10 @@
 # AuditLens
 
+[![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests: 302](https://img.shields.io/badge/tests-302%20passing-brightgreen.svg)](#testing)
+
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
 AuditLens is a working model of how an audit data analytics engagement actually runs:
@@ -9,7 +14,8 @@ into a single explainable risk score, and hand an auditor a triage list they can
 
 Every number in this README was produced by the code in this repository. Run
 `python src/run_pipeline.py` and you will get the same ones — the pipeline is
-deterministic and `tests/test_reproducibility.py` enforces that across processes.
+deterministic and `tests/test_reproducibility.py` enforces that across processes. CI
+runs the pipeline twice on every push and fails if the reports differ.
 
 ```
 30,128 vouchers · CNY 4.44B · 409 vendors · 2024-01-01 → 2026-01-03
@@ -52,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **293 tests**, all passing — including in-process render tests for all six dashboard pages |
+| Test suite | **302 tests**, all passing — including in-process render tests for all six dashboard pages |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -480,7 +486,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 293 tests, incl. cross-process reproducibility
+├── tests/                       # 302 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -491,7 +497,9 @@ AuditLens/
 ├── notebooks/                   # 01 EDA · 02 audit analysis · 03 anomaly detection
 ├── tools/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
-│   └── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
+│   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
+│   └── ci_summary.py            # headline figures for the CI job summary
+├── .github/workflows/ci.yml     # pipeline + 302 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -651,7 +659,7 @@ cell before writing the file** — so a notebook that does not run cannot be com
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 293 tests
+python -m pytest tests/ -q     # 302 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -659,7 +667,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-293 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
+302 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
 render suite.
 
 | File | Tests | What it pins down |
@@ -670,12 +678,30 @@ render suite.
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
 | `test_dashboard.py` | 62 | Renders all six pages in-process via `AppTest` and asserts on the text each one emits; also pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
+| `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
 | `test_reporting.py` | 6 | The flag-vs-anomaly distinction in `detector_overlap` |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 
 Four of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded
 label, and the overstated model contribution. `docs/methodology.md` documents each one.
+
+### What CI verifies
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push, on Python
+3.11 and 3.12, and checks three things the README otherwise only asserts:
+
+1. **The pipeline runs** from a clean checkout, on a different operating system from the
+   one it was developed on.
+2. **The tests pass** — the dashboard render tests skip themselves unless the pipeline
+   has produced its artefacts, so CI runs the pipeline first and the suite is complete
+   rather than partial.
+3. **The pipeline is reproducible.** CI runs it a second time and diffs
+   `outputs/reports/`. A non-deterministic change fails the build rather than quietly
+   changing the headline numbers.
+
+It also writes the run's headline figures to the job summary, so a drift in any of them
+is visible without reading the log.
 
 ## License
 

@@ -1,0 +1,75 @@
+name: CI
+
+# The README makes two claims a reader cannot check without running the project:
+# that the pipeline is reproducible, and that the tests pass. This workflow checks
+# both, on every push, so the claims are verified rather than asserted.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A superseded push does not need to finish; cancel it and free the runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      # The dashboard render tests skip themselves when the pipeline has not run,
+      # so this step is what makes the full suite meaningful rather than partial.
+      - name: Run the pipeline
+        run: python src/run_pipeline.py
+
+      - name: Run the tests
+        run: python -m pytest tests/ -q
+
+      # The README says two consecutive runs produce byte-identical reports under
+      # outputs/reports/, and that tests/test_reproducibility.py enforces it. That
+      # test covers the generator across processes; this covers the whole pipeline
+      # end to end, on a different operating system from the one it was built on.
+      - name: Check the pipeline is reproducible
+        if: matrix.python-version == '3.11'
+        run: |
+          cp -r outputs/reports /tmp/reports-first-run
+          python src/run_pipeline.py
+          if diff -r /tmp/reports-first-run outputs/reports; then
+            echo "Reports are byte-identical across two runs."
+          else
+            echo "::error::The pipeline is not reproducible: reports changed between runs."
+            exit 1
+          fi
+
+      - name: Summarise the run
+        if: matrix.python-version == '3.11'
+        run: |
+          python tools/ci_summary.py --output summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
