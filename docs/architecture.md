@@ -210,6 +210,15 @@ up in production, so it is handled in one place.
   notebook is the one artefact here that can be silently *empty* — the build succeeds, the
   file is valid, and it renders as code with nothing underneath. `test_ci_summary` is the
   same idea for the CI job summary, and `test_reproducibility` for the generator.
+- **Prose tests** (`test_readme_claims`, `test_documentation`). For a portfolio
+  repository the numbers *are* the credibility: a reviewer who checks one headline figure
+  and finds it stale stops trusting the rest. Nothing else in the suite reads the README,
+  so before these files the figures were correct only for as long as nobody re-ran the
+  pipeline with a different seed or threshold. Every headline figure, all nine rules'
+  flagged/precision/recall, the Benford table, the risk-band counts and values, the
+  component weights (which must sum to one) and the chart count are now compared against
+  `outputs/reports/`. Counts are exact; money allows 1% because a figure quoted to two
+  decimals in billions is only good to about that.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
   against the built warehouse and assert each returns rows. `run_sql_file` deliberately
   surfaces a failure rather than raising — it logs and returns an empty frame — so without
