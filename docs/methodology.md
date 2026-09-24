@@ -201,6 +201,38 @@ two pipeline runs by hand. The pool is now a sorted list, and
 different hash seeds and compares ledger hashes — a guard that was verified to fail
 when the fix is reverted.
 
+**The notebooks were committed with no outputs.** All 23 code cells across the three
+notebooks contained zero output. `tools/build_notebooks.py` executed every cell to prove
+the notebook ran, then wrote the `.ipynb` with the results discarded — so the build
+reported success and the committed file rendered on GitHub as code with nothing
+underneath it. Nothing failed, because a notebook with empty outputs is a perfectly
+valid file. The builder now captures and embeds what each cell produced: stdout, the
+`display()` values as HTML tables, and the matplotlib figures as inline PNGs.
+
+Embedding the output then exposed two sources of instability, which mattered because
+they made the committed notebooks differ on *every* build:
+
+* **pandas mints a random table id per `Styler` render.** `Styler.to_html()` stamps its
+  `<table>` and every `<th>`/`<td>` inside it with a `uuid4`-derived id, so the same table
+  rendered as `T_3b175` in one process and `T_9f01c` in the next. The builder rewrites
+  those ids to a deterministic sequence. The replacement deliberately contains a `z`
+  (`T_z0000`), because an all-digit id such as `T_00000` is itself valid hex and would
+  match the pattern used to detect leaked random ids — the check could never have failed.
+* **The loggers wrote a wall-clock timestamp into the capture buffer.** `get_logger`
+  builds its `StreamHandler` against whatever `sys.stdout` is live when the logger is
+  first constructed. During a notebook build that is the per-cell capture buffer, so a
+  `13:16:49 | INFO | src.reporting | Chart font: ...` record landed in the notebook and
+  changed on every run. Worse, records from later cells were written into a buffer that
+  was no longer being read and were silently lost. INFO logging is now disabled for the
+  duration of the build; warnings and errors still surface.
+
+`tests/test_notebooks.py` guards all of this: every cell that prints or plots must carry
+output, every notebook must embed at least one chart, and no random table id or logged
+timestamp may survive into a committed notebook. The `display()` shim is pinned too — it
+was originally `list.extend`, which takes an *iterable* of things to display, so
+`display(styler)` raised and `display(frame)` silently recorded the frame's **column
+names** in place of the frame. A wrong table, produced with no error.
+
 ---
 
 ## 4. Benford's Law

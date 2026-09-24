@@ -52,6 +52,19 @@ jobs:
       - name: Run the tests
         run: python -m pytest tests/ -q
 
+      # The notebooks are committed artefacts, and test_notebooks.py checks that the
+      # committed ones are populated and stable. This step answers the other question a
+      # reader cannot: do they still *run* against the current code? A notebook that no
+      # longer executes is invisible on GitHub, because the stale outputs still render.
+      #
+      # Deliberately after the tests, so they inspect the committed files rather than a
+      # fresh build. The rebuild is not compared byte for byte: the embedded charts are
+      # rendered with whatever CJK font the runner has, so their PNG bytes legitimately
+      # differ from the macOS ones. Only reports/ is held to that standard.
+      - name: Rebuild the notebooks
+        if: matrix.python-version == '3.11'
+        run: python tools/build_notebooks.py
+
       # The README says two consecutive runs produce byte-identical reports under
       # outputs/reports/, and that tests/test_reproducibility.py enforces it. That
       # test covers the generator across processes; this covers the whole pipeline
