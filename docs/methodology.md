@@ -233,6 +233,23 @@ was originally `list.extend`, which takes an *iterable* of things to display, so
 `display(styler)` raised and `display(frame)` silently recorded the frame's **column
 names** in place of the frame. A wrong table, produced with no error.
 
+**The guard against a stale test count could not detect one.** `tests/test_documentation.py`
+was written because the README's test count had drifted repeatedly (302 → 331 → 351). It
+compared the testing table against the badge, and deliberately did *no* pytest
+introspection so that adding a test could not break it. That choice removed its ability
+to do the job it was written for. Four new tests took two files from 55 to 57 and 18 to
+20 while the badge still read 374, and every check stayed green — the table and the badge
+agreed with each other, and neither was ever compared to the number of tests pytest
+actually collects. It was caught by hand, in the same session, by reading the collection
+output.
+
+The file now runs `pytest --collect-only -q` in a subprocess and compares every row and
+the total against it, keeping the text checks as well. The subprocess is the load-bearing
+detail: reading `request.session.items` would make the answer depend on how the file was
+invoked, so running it on its own would compare the table against a single file and fail
+for a reason unrelated to the documentation. The new check immediately caught the next
+drift — its own three tests.
+
 ---
 
 ## 4. Benford's Law

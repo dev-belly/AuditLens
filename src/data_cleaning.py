@@ -116,7 +116,13 @@ class DataQualityReport:
         total_transaction_amount: Sum of the debit leg, in CNY.
         unique_vendors: Distinct vendors referenced.
         unique_accounts: Distinct accounts used.
-        unique_employees: Distinct employees who raised vouchers.
+        unique_voucher_creators: Distinct employees who raised a voucher, i.e.
+            ``created_by``. Deliberately *not* the size of the employee master
+            file, and the name says so. Roughly a quarter of the roster holds
+            roles (HR, sales, executive) that never raise an AP voucher, so the
+            two figures legitimately differ. An earlier version called this
+            ``unique_employees``, which read as a contradiction of the
+            ``employees`` table in the same set of reports.
     """
 
     raw_rows: int = 0
@@ -136,7 +142,7 @@ class DataQualityReport:
     total_transaction_amount: float = 0.0
     unique_vendors: int = 0
     unique_accounts: int = 0
-    unique_employees: int = 0
+    unique_voucher_creators: int = 0
     repair_log: list[str] = field(default_factory=list)
 
     @property
@@ -487,7 +493,7 @@ def clean_transactions(
     report.total_transaction_amount = float(df["debit_amount"].sum())
     report.unique_vendors = int(df["vendor_id"].nunique())
     report.unique_accounts = int(df["account_code"].nunique())
-    report.unique_employees = int(df["created_by"].nunique())
+    report.unique_voucher_creators = int(df["created_by"].nunique())
     report.date_range = [
         str(df["transaction_date"].min().date()),
         str(df["transaction_date"].max().date()),

@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 374](https://img.shields.io/badge/tests-374%20passing-brightgreen.svg)](#testing)
+[![Tests: 381](https://img.shields.io/badge/tests-381%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **374 tests**, all passing — including in-process render tests for all six dashboard pages |
+| Test suite | **381 tests**, all passing — including in-process render tests for all six dashboard pages |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -438,9 +438,17 @@ capturing. `make screenshots` regenerates them.
 ## SQL
 
 `data/auditlens.db` (SQLite) holds `transactions` (30,128), `vendors` (409),
-`employees` (140) and `audit_alerts` (2,475). `sql/audit_queries.sql` contains **15
-named business queries**, each with a `-- name:` marker so it can be run
-individually or all together:
+`employees` (140) and `audit_alerts` (2,475).
+
+Two employee figures appear in the reports and they are **not** meant to agree. The
+roster is 140; only **104** of those people ever raise a voucher, because the rest hold
+roles — HR, sales, the executive team — that do not post AP entries. `audit_summary.json`
+therefore names the figure `unique_voucher_creators`, not `unique_employees`. An earlier
+version used the ambiguous name and a reviewer comparing it against the 140-row
+`employees` table read a contradiction where there was only a different population.
+
+`sql/audit_queries.sql` contains **15 named business queries**, each with a `-- name:`
+marker so it can be run individually or all together:
 
 | Query | Demonstrates |
 |---|---|
@@ -486,7 +494,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 374 tests, incl. cross-process reproducibility
+├── tests/                       # 381 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -499,7 +507,7 @@ AuditLens/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 374 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 381 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -668,7 +676,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 374 tests
+python -m pytest tests/ -q     # 381 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -676,12 +684,12 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-374 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
+381 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
 render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
-| `test_data_cleaning.py` | 55 | Each repair path: missing values, duplicates, invalid dates and amounts, debit/credit balance, orphan vendor IDs, inconsistent account names, currency normalisation |
+| `test_data_cleaning.py` | 57 | Each repair path: missing values, duplicates, invalid dates and amounts, debit/credit balance, orphan vendor IDs, inconsistent account names, currency normalisation |
 | `test_audit_rules.py` | 36 | One class per procedure, plus the text-encoded-label fallback in `evaluate()` |
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
@@ -692,13 +700,14 @@ render suite.
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 | `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
-| `test_documentation.py` | 5 | The testing table lists every test file, refers to no deleted ones, and sums to the count in the badge — the count has drifted twice, so it is now checked |
-| `test_readme_claims.py` | 18 | Every headline figure, all nine rules' flagged/precision/recall, the Benford table, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
+| `test_documentation.py` | 8 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total |
+| `test_readme_claims.py` | 20 | Every headline figure, all nine rules' flagged/precision/recall, the Benford table, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
 
-Five of these are regression guards for bugs that were actually shipped during
+Six of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded
-label, the overstated model contribution, and the notebooks committed with empty output
-cells. `docs/methodology.md` documents each one.
+label, the overstated model contribution, the notebooks committed with empty output
+cells, and the test-count guard that could not detect a stale count. `docs/methodology.md`
+documents each one.
 
 ### What CI verifies
 

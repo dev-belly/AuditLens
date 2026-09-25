@@ -535,7 +535,10 @@ def build_audit_summary(
             ],
             "unique_vendors": int(df["vendor_id"].nunique()),
             "unique_accounts": int(df["account_code"].nunique()),
-            "unique_employees": int(df["created_by"].nunique()),
+            # Named for what it measures. ``created_by``, not the employee master
+            # file, so this is smaller than the ``employees`` table row count and
+            # is not a contradiction of it.
+            "unique_voucher_creators": int(df["created_by"].nunique()),
         },
         "triage": {
             "flagged_by_rules": flagged,

@@ -24,6 +24,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,7 @@ README = PROJECT_ROOT / "README.md"
 SUMMARY = PROJECT_ROOT / "outputs" / "reports" / "audit_summary.json"
 RULE_EVALUATION = PROJECT_ROOT / "outputs" / "reports" / "rule_evaluation.csv"
 CHARTS = PROJECT_ROOT / "outputs" / "charts"
+WAREHOUSE = PROJECT_ROOT / "data" / "auditlens.db"
 
 pytestmark = pytest.mark.skipif(
     not SUMMARY.exists(),
@@ -239,3 +241,38 @@ class TestArtefactCounts:
         match = re.search(r"`outputs/charts/`\s*\|\s*(\d+)\s+charts", _readme())
         assert match, "the README no longer states a chart count"
         assert int(match.group(1)) == len(list(CHARTS.glob("*.png")))
+
+    def test_the_two_employee_figures_are_stated_and_distinct(self) -> None:
+        """140 people are on the roster; 104 of them raise a voucher.
+
+        Both numbers are correct and they describe different populations. The summary
+        JSON once labelled the smaller one ``unique_employees``, which read as a
+        contradiction of the 140-row ``employees`` table in the same set of reports.
+        The README now spells the distinction out, so this pins both figures and the
+        relationship between them.
+        """
+        roster_match = re.search(r"`employees`\s*\((\d[\d,]*)\)", _readme())
+        creators_match = re.search(r"only\s+\*\*(\d[\d,]*)\*\*\s+of those people", _readme())
+        assert roster_match, "the README no longer states the employees table size"
+        assert creators_match, "the README no longer states the voucher-creator count"
+
+        roster_size = int(roster_match.group(1).replace(",", ""))
+        creator_count = int(creators_match.group(1).replace(",", ""))
+
+        population = _summary()["population"]
+        assert population["unique_voucher_creators"] == creator_count
+        assert "unique_employees" not in population, "the ambiguous field name came back"
+        assert creator_count < roster_size, "voucher creators are a subset of the roster"
+
+    def test_the_roster_size_matches_the_warehouse(self) -> None:
+        """The 140 is a real table count, not a decorative figure."""
+        if not WAREHOUSE.exists():
+            pytest.skip("Run `python src/run_pipeline.py` to build the warehouse.")
+
+        roster_match = re.search(r"`employees`\s*\((\d[\d,]*)\)", _readme())
+        assert roster_match
+
+        with sqlite3.connect(WAREHOUSE) as connection:
+            actual = connection.execute("SELECT COUNT(*) FROM employees").fetchone()[0]
+
+        assert actual == int(roster_match.group(1).replace(",", ""))

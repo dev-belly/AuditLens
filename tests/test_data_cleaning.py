@@ -382,6 +382,48 @@ class TestDataQualityReport:
         assert report.total_issues == 0
 
 
+class TestVoucherCreatorCount:
+    """The population figures must be named for what they actually measure.
+
+    The report used to expose ``unique_employees``, computed from ``created_by``.
+    That name collided with the ``employees`` master table, which is a *different*
+    and larger population: roles such as HR, sales and the executive team never
+    raise an AP voucher, so the roster is always bigger than the set of people who
+    post one. Read side by side in the same report set, the two numbers looked like
+    a contradiction rather than two legitimately different populations.
+
+    A reviewer who spots a figure that appears to contradict itself stops trusting
+    the rest of the numbers, so the count is pinned to its real definition here.
+    """
+
+    @staticmethod
+    def _one_creator_two_employees() -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Two vouchers naming two employees, but only one of them raises any."""
+        rows = [
+            {"transaction_id": "TX0001", "employee_id": "E0001", "created_by": "E0001"},
+            {"transaction_id": "TX0002", "employee_id": "E0002", "created_by": "E0001"},
+        ]
+        vendors = pd.DataFrame({"vendor_id": ["V0001"], "vendor_name": ["Test Vendor One"]})
+        return _frame(rows), vendors
+
+    def test_count_follows_created_by_not_employee_id(self) -> None:
+        """The narrower population is the intended one, and the name must say so."""
+        transactions, vendors = self._one_creator_two_employees()
+        clean, report = clean_transactions(transactions, vendors)
+
+        assert clean["employee_id"].nunique() == 2, "fixture must reference two employees"
+        assert clean["created_by"].nunique() == 1, "fixture must have one creator"
+        assert report.unique_voucher_creators == 1
+
+    def test_the_ambiguous_field_name_cannot_come_back(self) -> None:
+        """``unique_employees`` is the name that caused the misreading."""
+        report = DataQualityReport()
+
+        assert not hasattr(report, "unique_employees")
+        assert "unique_employees" not in report.to_dict()
+        assert "unique_voucher_creators" in report.to_dict()
+
+
 # --------------------------------------------------------------------------- #
 # End to end
 # --------------------------------------------------------------------------- #

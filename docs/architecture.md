@@ -218,7 +218,11 @@ up in production, so it is handled in one place.
   flagged/precision/recall, the Benford table, the risk-band counts and values, the
   component weights (which must sum to one) and the chart count are now compared against
   `outputs/reports/`. Counts are exact; money allows 1% because a figure quoted to two
-  decimals in billions is only good to about that.
+  decimals in billions is only good to about that. `test_documentation` additionally runs
+  `pytest --collect-only -q` in a subprocess and compares the testing table and the badge
+  against the real collection, per file and in total. The purely textual version of that
+  check could only prove the README agreed with itself, and let four new tests pass while
+  the documented counts went stale.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
   against the built warehouse and assert each returns rows. `run_sql_file` deliberately
   surfaces a failure rather than raising — it logs and returns an empty frame — so without

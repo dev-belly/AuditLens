@@ -33,7 +33,7 @@
   "total_transaction_amount": 4443451721.66,
   "unique_vendors": 409,
   "unique_accounts": 18,
-  "unique_employees": 104,
+  "unique_voucher_creators": 104,
   "repair_log": [
     "Normalised 34 messy currency codes to ISO 4217.",
     "Rebuilt 45 posting dates from the transaction date.",
