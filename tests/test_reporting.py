@@ -20,7 +20,30 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src import reporting
 from src.reporting import detector_overlap
+
+
+def test_high_risk_extract_orders_equal_scores_consistently(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "high_risk.csv"
+    monkeypatch.setattr(reporting, "HIGH_RISK_CSV", output)
+    vouchers = pd.DataFrame(
+        [
+            {"transaction_id": "TX003", "audit_risk_score": 73.15, "risk_level": "High"},
+            {"transaction_id": "TX001", "audit_risk_score": 73.15, "risk_level": "Critical"},
+            {"transaction_id": "TX002", "audit_risk_score": 90.0, "risk_level": "High"},
+            {"transaction_id": "TX004", "audit_risk_score": 99.0, "risk_level": "Low"},
+        ]
+    )
+
+    reporting.write_high_risk_extract(vouchers)
+    first = output.read_bytes()
+    reporting.write_high_risk_extract(vouchers.iloc[::-1])
+
+    assert output.read_bytes() == first
+    assert pd.read_csv(output)["transaction_id"].tolist() == ["TX002", "TX001", "TX003"]
 
 
 def _frame(rows: list[dict]) -> pd.DataFrame:

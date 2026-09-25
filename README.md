@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 386](https://img.shields.io/badge/tests-386%20passing-brightgreen.svg)](#testing)
+[![Tests: 387](https://img.shields.io/badge/tests-387%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **386 tests**, including dashboard render and warehouse integrity checks |
+| Test suite | **387 tests**, including dashboard render and warehouse integrity checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -494,7 +494,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 386 tests, incl. cross-process reproducibility
+├── tests/                       # 387 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -507,7 +507,7 @@ AuditLens/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 386 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 387 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -676,7 +676,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 386 tests
+python -m pytest tests/ -q     # 387 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -684,7 +684,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-386 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
+387 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
 then runs the full suite. `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
@@ -696,7 +696,7 @@ then runs the full suite. `make test-fast` skips the dashboard render suite.
 | `test_dashboard.py` | 62 | Renders all six pages in-process via `AppTest` and asserts on the text each one emits; also pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
 | `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
-| `test_reporting.py` | 6 | The flag-vs-anomaly distinction in `detector_overlap` |
+| `test_reporting.py` | 7 | The flag-vs-anomaly distinction in `detector_overlap` and stable ordering for equal risk scores in the review extract |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 | `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |

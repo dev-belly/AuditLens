@@ -425,8 +425,10 @@ def write_high_risk_extract(df: pd.DataFrame) -> Path:
         )
         if column in df.columns
     ]
+    # Scores are rounded for the review extract; ties need a stable order even
+    # if the upstream frame arrives in a different row order.
     extract = df.loc[df["risk_level"].isin(HIGH_RISK_LEVELS), columns].sort_values(
-        "audit_risk_score", ascending=False
+        ["audit_risk_score", "transaction_id"], ascending=[False, True]
     )
     extract.to_csv(HIGH_RISK_CSV, index=False, encoding="utf-8-sig")
     LOGGER.info("Wrote %s (%s vouchers)", HIGH_RISK_CSV.name, len(extract))
