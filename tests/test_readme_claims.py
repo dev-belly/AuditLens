@@ -40,6 +40,7 @@ METHODOLOGY = PROJECT_ROOT / "docs" / "methodology.md"
 PIPELINE = PROJECT_ROOT / "src" / "run_pipeline.py"
 SUMMARY = PROJECT_ROOT / "outputs" / "reports" / "audit_summary.json"
 RULE_EVALUATION = PROJECT_ROOT / "outputs" / "reports" / "rule_evaluation.csv"
+BENFORD_RESULTS = PROJECT_ROOT / "outputs" / "reports" / "benford_results.json"
 CHARTS = PROJECT_ROOT / "outputs" / "charts"
 WAREHOUSE = PROJECT_ROOT / "data" / "auditlens.db"
 
@@ -283,6 +284,47 @@ class TestArtefactCounts:
             actual = connection.execute("SELECT COUNT(*) FROM employees").fetchone()[0]
 
         assert actual == int(roster_match.group(1).replace(",", ""))
+
+    def test_the_readme_quotes_exactly_the_reported_mads(self) -> None:
+        """Every five-decimal figure in the README must be a MAD the report produced.
+
+        The README quotes two MADs in six places. The headline table and the Benford
+        table give the first-digit MAD (0.00218) and the first-two-digits MAD (0.00071);
+        the business insights and the interview section repeat them in prose. They are
+        different tests over different bucket counts, which is precisely why one reads
+        like a contradiction of the other - the interview answer now names which is
+        which.
+
+        The check is set *equality*, not membership, and that is the whole point. An
+        earlier version asserted each reported MAD appeared somewhere, which could not
+        fail: with four copies of 0.00218 in the file, editing one of them left the other
+        three to satisfy the assertion. Set equality catches the edit, because the
+        altered value enters the set and the reported value no longer matches it.
+
+        Five decimal places is the discriminator because the MADs are the only figures
+        here quoted to that precision. If the README ever legitimately quotes something
+        else at 5dp, this fails loudly and the guard should be widened - which is the
+        intended outcome, not a false alarm.
+        """
+        if not BENFORD_RESULTS.exists():
+            pytest.skip("Run `python src/run_pipeline.py` to write benford_results.json.")
+
+        results = json.loads(BENFORD_RESULTS.read_text(encoding="utf-8"))
+        mads = {
+            name: test["mad"]
+            for name, test in results.items()
+            if isinstance(test, dict) and "mad" in test
+        }
+        assert len(mads) == 2, f"expected two Benford tests, found {sorted(mads)}"
+
+        # A 5-6 decimal literal not embedded inside a longer number, so the 7-decimal
+        # p-value 0.0423359 is not truncated into a false match.
+        quoted = set(re.findall(r"(?<![\d.])0\.\d{5,6}(?!\d)", _readme()))
+        reported = {f"{mad:.5f}" for mad in mads.values()}
+        assert quoted == reported, (
+            f"the README quotes {sorted(quoted)} to five decimals; the Benford report "
+            f"produced {sorted(reported)}"
+        )
 
 
 #: Spelled-out counts appear in the README's prose ("runs all nine stages") as well as
