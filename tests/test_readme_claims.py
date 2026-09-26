@@ -345,6 +345,20 @@ def _pipeline_stages() -> tuple[int, int]:
     return declared, len(banners)
 
 
+#: The heading that introduces the methodology's error log. Each entry opens with a bold
+#: sentence at column zero, which is what makes the count machine-checkable.
+MISTAKE_HEADING = "### Where the first attempt was wrong"
+
+
+def _methodology_mistakes() -> list[str]:
+    """The bold lead-ins of the methodology's "where the first attempt was wrong" entries."""
+    text = METHODOLOGY.read_text(encoding="utf-8")
+    assert MISTAKE_HEADING in text, f"docs/methodology.md no longer has {MISTAKE_HEADING!r}"
+    body = text.split(MISTAKE_HEADING, 1)[1]
+    body = re.split(r"\n#{1,3} ", body, maxsplit=1)[0]
+    return re.findall(r"^\*\*[A-Z][^\n]*", body, re.M)
+
+
 class TestStructuralCounts:
     """The counts the documentation uses to describe the shape of the system.
 
@@ -386,3 +400,22 @@ class TestStructuralCounts:
         """The mix is a distribution; a drift here silently moves the anomaly rate."""
         total = sum(ANOMALY_MIX.values())
         assert abs(total - 1.0) < 1e-9, f"ANOMALY_MIX weights sum to {total}, not 1.0"
+
+    def test_the_readme_states_the_right_number_of_mistakes(self) -> None:
+        """The README advertised "seven" while the methodology recorded eight.
+
+        Nothing compared the two, so the eighth entry - the inert test-count guard - was
+        added and the sentence one file away quietly became false. It is a small number
+        about a document rather than the code, which is exactly the kind that goes stale.
+        """
+        match = re.search(r"the (\w+) places the first attempt was wrong", _readme())
+        assert match, "the README no longer says how many mistakes the methodology records"
+
+        word = match.group(1).lower()
+        assert word in NUMBER_WORDS, f"unrecognised number word in the README: {word!r}"
+        stated = NUMBER_WORDS[word]
+
+        actual = len(_methodology_mistakes())
+        assert stated == actual, (
+            f"the README says docs/methodology.md records {stated} mistakes; it records {actual}"
+        )

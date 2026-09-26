@@ -274,7 +274,12 @@ up in production, so it is handled in one place.
   nothing, so adding one feature to `ML_FEATURE_COLUMNS` would have left all four stale
   with every test green. The stage count is read from `run_pipeline.py` by counting the
   `_banner` calls *and* the declared `total_steps`, so the numbering and the total cannot
-  drift apart either.
+  drift apart either. `test_documentation` also resolves every relative link and embedded
+  image across the four markdown files. The README's dashboard section is six raw
+  `<img src="docs/screenshots/...">` tags, so a renamed capture turns them into broken
+  image icons on GitHub — a *visible* defect, and a different mistake from the one
+  `test_screenshots` catches: that file checks the PNGs against the capture tool, this one
+  checks the README's references to them.
 - **Capture tests** (`test_screenshots`). The six dashboard PNGs under
   `docs/screenshots/` are the only way a reader sees the dashboard without running it,
   and they were the last documented artefact here that nothing checked. The six pages

@@ -203,3 +203,95 @@ class TestProjectStructure:
                 if path.name != "__init__.py" and path.name not in documented
             )
         assert not missing, f"these modules are missing from the README tree: {missing}"
+
+
+#: Markdown links and images, plus the raw ``<img src="...">`` form the README uses for
+#: its screenshot grid.
+MD_LINK = re.compile(r"!?\[[^\]]*\]\(([^)\s]+?)(?:\s+\"[^\"]*\")?\)")
+IMG_SRC = re.compile(r"<img[^>]*?\ssrc=[\"']([^\"']+)[\"']", re.IGNORECASE)
+
+#: Fenced blocks and inline code spans. Documentation that *shows* link syntax - this
+#: very file's sibling, ``docs/architecture.md``, writes ``<img src="docs/screenshots/...">``
+#: inside backticks - would otherwise be read as a reference and fail the check. A code
+#: span is an example, not a link. That example is now the regression fixture: delete the
+#: stripping below and `test_every_local_link_resolves` fails on architecture.md.
+FENCED_CODE = re.compile(r"^```.*?^```", re.MULTILINE | re.DOTALL)
+INLINE_CODE = re.compile(r"`[^`\n]*`")
+
+DOCUMENTS = (
+    README,
+    PROJECT_ROOT / "docs" / "architecture.md",
+    PROJECT_ROOT / "docs" / "methodology.md",
+    PROJECT_ROOT / "docs" / "screenshots" / "README.md",
+)
+
+
+def _slug(heading: str) -> str:
+    """GitHub's heading anchor: lowercased, punctuation dropped, spaces to hyphens."""
+    stripped = re.sub(r"[^\w\s-]", "", heading.strip().lower())
+    return re.sub(r"\s+", "-", stripped)
+
+
+def _anchors(path: Path) -> set[str]:
+    return {
+        _slug(match.group(1))
+        for match in re.finditer(r"^#{1,6}\s+(.*)$", path.read_text("utf-8"), re.MULTILINE)
+    }
+
+
+def _prose(path: Path) -> str:
+    """The document with code removed, so syntax examples are not read as references.
+
+    Stripping an inline span leaves the surrounding link intact: ``[`docs/x.md`](docs/x.md)``
+    becomes ``[](docs/x.md)``, which still matches ``MD_LINK`` and still yields the real
+    target.
+    """
+    text = FENCED_CODE.sub("", path.read_text("utf-8"))
+    return INLINE_CODE.sub("", text)
+
+
+def _relative_targets(path: Path) -> list[str]:
+    """Every non-http link or image target in a document."""
+    text = _prose(path)
+    targets = MD_LINK.findall(text) + IMG_SRC.findall(text)
+    return [t for t in targets if not t.startswith(("http://", "https://", "mailto:"))]
+
+
+class TestDocumentationLinks:
+    """Every relative link and image in the docs must resolve.
+
+    The README is the first thing a reviewer opens, and its dashboard section is six raw
+    ``<img src="docs/screenshots/...">`` tags. Rename a capture and those become broken
+    image icons on GitHub - a *visible* defect, and one no existing test caught, because
+    the screenshot guard checks the files against the capture tool rather than against
+    the README's references to them. Two guards, two different mistakes.
+    """
+
+    def test_the_parser_found_some_targets(self) -> None:
+        """Guards the two checks below: an empty match would make them vacuous."""
+        assert any(_relative_targets(doc) for doc in DOCUMENTS), (
+            "no relative links or images were found; the parser may be broken"
+        )
+
+    def test_every_local_link_resolves(self) -> None:
+        broken: list[str] = []
+        for document in DOCUMENTS:
+            for target in _relative_targets(document):
+                path_part, _, anchor = target.partition("#")
+                if not path_part:
+                    if anchor and anchor not in _anchors(document):
+                        broken.append(f"{document.name}: #{anchor}")
+                    continue
+                resolved = (document.parent / path_part).resolve()
+                if not resolved.exists():
+                    broken.append(f"{document.name}: {target}")
+                elif anchor and resolved.suffix == ".md" and anchor not in _anchors(resolved):
+                    broken.append(f"{document.name}: {target} (no such heading)")
+        assert not broken, f"documentation links that do not resolve: {broken}"
+
+    def test_every_readme_image_exists(self) -> None:
+        """The six dashboard captures, checked from the README's side."""
+        images = IMG_SRC.findall(README.read_text("utf-8"))
+        assert images, "the README no longer embeds any images"
+        missing = [src for src in images if not (PROJECT_ROOT / src).exists()]
+        assert not missing, f"the README embeds images that do not exist: {missing}"
