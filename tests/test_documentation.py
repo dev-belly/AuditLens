@@ -1,10 +1,10 @@
 """The README's structural claims, kept honest.
 
-Two kinds of claim live here, both of the same shape: a fact restated in the README
+Three kinds of claim live here, all of the same shape: a fact restated in the README
 that the repository can contradict without anyone noticing.
 
-**The test count.** It appears in seven places in the README plus a thirteen-row
-table, and it has drifted repeatedly during development (302 -> 331 -> 351 -> 374 ->
+**The test count.** It appears in seven places in the README plus one table row per
+test file, and it has drifted repeatedly during development (302 -> 331 -> 351 -> 374 ->
 378). Every drift was a document that was correct when written and silently wrong
 afterwards, which is the same failure mode as the SQL header that said "Fourteen
 queries" while the file held fifteen.
@@ -18,6 +18,13 @@ the badge agreed with each other and neither was compared to reality.
 **The project-structure tree.** Every module the README lists must exist, and every
 module in ``src/`` must be listed. A rename or an extraction leaves a ghost in the tree
 otherwise, and the tree is the first thing a reviewer reads to understand the layout.
+
+**The Makefile's entry points.** ``.PHONY`` declared fifteen targets while the file
+defined fourteen. ``lint`` had no recipe, so ``make lint`` printed "Nothing to be done"
+and exited **0** - a command that looks like it ran, reports success, and inspects
+nothing, which is the worst shape a check can take. ``make help`` did not list it
+either, so the phantom was invisible to the one command a reviewer would run, and
+nothing compared the declaration against the file it describes.
 
 So the checks come in two kinds, and both are needed:
 
@@ -37,14 +44,18 @@ collection over ``tests/`` always describes the whole suite.
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 README = PROJECT_ROOT / "README.md"
 TESTS_DIR = PROJECT_ROOT / "tests"
+MAKEFILE = PROJECT_ROOT / "Makefile"
 
 #: ``| `test_foo.py` | 12 | what it pins down |``
 TABLE_ROW = re.compile(r"^\|\s*`(test_\w+)\.py`\s*\|\s*(\d+)\s*\|", re.MULTILINE)
@@ -295,3 +306,147 @@ class TestDocumentationLinks:
         assert images, "the README no longer embeds any images"
         missing = [src for src in images if not (PROJECT_ROOT / src).exists()]
         assert not missing, f"the README embeds images that do not exist: {missing}"
+
+
+#: ``.PHONY: a b c \`` - one declaration, possibly continued over several lines.
+PHONY = re.compile(r"^\.PHONY:(.*?)(?=\n\S)", re.MULTILINE | re.DOTALL)
+
+#: ``target:`` at the start of a line. The ``(?!=)`` keeps ``FOO := bar`` out.
+TARGET = re.compile(r"^([a-zA-Z_][a-zA-Z0-9_-]*):(?!=)", re.MULTILINE)
+
+#: ``target:  ## what it does`` - a target that ``make help`` will print.
+DOCUMENTED_TARGET = re.compile(r"^([a-zA-Z_][a-zA-Z0-9_-]*):[^=\n]*##\s+(.*)$", re.MULTILINE)
+
+#: ``make target``, as written in a command.
+MAKE_INVOCATION = re.compile(r"\bmake\s+([a-zA-Z][a-zA-Z0-9_-]*)")
+
+#: The colour codes ``make help`` writes around each target name.
+ANSI = re.compile(r"\033\[[0-9;]*m")
+
+
+def _makefile() -> str:
+    return MAKEFILE.read_text("utf-8")
+
+
+def _phony_names() -> set[str]:
+    """The names ``.PHONY`` declares, with any line continuations removed."""
+    match = PHONY.search(_makefile())
+    assert match, "the Makefile no longer declares .PHONY"
+    return set(match.group(1).replace("\\", " ").split())
+
+
+def _targets() -> set[str]:
+    """Every target the Makefile defines, documented or not."""
+    return set(TARGET.findall(_makefile()))
+
+
+def _documented_targets() -> dict[str, str]:
+    """Targets carrying a ``## `` description, mapped to that description."""
+    return dict(DOCUMENTED_TARGET.findall(_makefile()))
+
+
+def _code(path: Path) -> str:
+    """The code in a document - fenced blocks and inline spans - where commands live.
+
+    The inverse of ``_prose``: scanning prose for ``make x`` would match sentences
+    ("make the pipeline reproducible"), so the invocation check reads only the spans a
+    reader would copy and paste.
+    """
+    text = path.read_text("utf-8")
+    return "\n".join(FENCED_CODE.findall(text) + INLINE_CODE.findall(text))
+
+
+@lru_cache(maxsize=1)
+def _make_help() -> dict[str, str]:
+    """What ``make help`` really prints, as target name to description.
+
+    Run rather than re-parsed from the Makefile, because the ``help`` target builds its
+    own list with a ``grep`` over the file. Re-parsing would only prove the Makefile
+    agrees with itself; if that grep pattern broke, a reviewer would see a short list
+    while this check stayed green.
+    """
+    make = shutil.which("make")
+    if make is None:  # pragma: no cover - make ships with every supported platform
+        pytest.skip("make is not installed, so its help output cannot be checked")
+
+    result = subprocess.run([make, "help"], cwd=PROJECT_ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, (
+        f"`make help` failed with exit code {result.returncode}:\n"
+        f"{result.stdout}{result.stderr}"
+    )
+    listed = {
+        match.group(1): match.group(2)
+        for match in re.finditer(
+            r"^ {2}(\S+) {2,}(.+)$", ANSI.sub("", result.stdout), re.MULTILINE
+        )
+    }
+    assert listed, (
+        "could not parse any targets out of `make help`; its output format may have "
+        f"changed:\n{result.stdout}"
+    )
+    return listed
+
+
+class TestTheMakefile:
+    """The developer entry points must be real, and the documents must name them right.
+
+    ``make`` is the project's advertised interface - the README's quick start is three
+    ``make`` commands - so a target that exists only in ``.PHONY``, or a command the
+    README names and the Makefile never defined, is a broken promise either way.
+    """
+
+    def test_the_parser_found_the_targets(self) -> None:
+        """Guards the checks below: an empty parse would make them all vacuous."""
+        assert len(_targets()) > 5, "could not parse targets out of the Makefile"
+        assert _documented_targets(), "no Makefile target carries a `## ` description"
+        assert _phony_names(), "could not parse the .PHONY declaration"
+
+    def test_every_phony_name_is_a_real_target(self) -> None:
+        """The defect this class exists for.
+
+        A name in ``.PHONY`` with no target of its own is not a harmless typo:
+        ``make <name>`` prints "Nothing to be done" and exits **0**, so anything that
+        runs it - a script, a CI step, a reviewer checking the tree is lint-clean - is
+        told the work succeeded when no work happened. ``lint`` sat in this state, and
+        ``make help`` never mentioned it, so only the declaration gave it away.
+        """
+        ghosts = sorted(_phony_names() - _targets())
+        assert not ghosts, (
+            f".PHONY declares targets the Makefile does not define: {ghosts}; "
+            "`make <name>` exits 0 without running anything"
+        )
+
+    def test_every_target_is_phony(self) -> None:
+        """The other direction: an unlisted target is disabled by a file of its name."""
+        missing = sorted(_targets() - _phony_names())
+        assert not missing, (
+            f"these targets are not declared .PHONY: {missing}; a file or directory "
+            "sharing the name would make make skip them"
+        )
+
+    def test_make_help_lists_every_target(self) -> None:
+        """``make help`` greps the Makefile, so it can disagree with the file.
+
+        Compared against *every* target rather than against the ones carrying a ``## ``
+        line. The weaker comparison moves both sides together: delete a description and
+        the target leaves ``make help`` while also leaving the set it is compared to, so
+        the check stays green while a reviewer's help output silently loses a target.
+        """
+        targets, listed = _targets(), set(_make_help())
+        assert listed == targets, (
+            f"`make help` lists {sorted(listed)} but the Makefile defines "
+            f"{sorted(targets)}; either a target lost its `## ` description, or the "
+            "help target's grep no longer matches it"
+        )
+
+    def test_the_documents_only_name_real_targets(self) -> None:
+        """Every ``make x`` in the docs must resolve, or the quick start is a dead end."""
+        targets = _targets()
+        unknown = [
+            f"{document.name}: make {name}"
+            for document in DOCUMENTS
+            for name in MAKE_INVOCATION.findall(_code(document))
+            if name not in targets
+        ]
+        assert not unknown, f"the documentation names targets that do not exist: {unknown}"
+

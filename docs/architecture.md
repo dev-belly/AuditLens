@@ -292,6 +292,21 @@ up in production, so it is handled in one place.
   capture but an *orphan*: the old PNG stays committed, the README keeps describing it,
   and nothing disagrees with anything. `MIN_CAPTURE_BYTES` also catches a truncated or
   placeholder file, which would otherwise display happily forever.
+- **Entry-point tests** (`test_documentation`). The Makefile is the project's advertised
+  interface — the README's quick start is three `make` commands — and nothing checked it.
+  `.PHONY` declared fifteen targets while the file defined fourteen: a `lint` target had no
+  recipe, so invoking it printed "Nothing to be done" and exited **0**. A command that looks
+  like it ran, reports success and inspects nothing is the worst shape a check can take, and
+  `make help` never listed it either, so the phantom was invisible to the one command a
+  reviewer would run. The guard pins the declaration against the targets the file really
+  defines, in both directions — an unlisted target is disabled by a file sharing its name —
+  and against `make help`'s *actual output*, run in a subprocess rather than re-parsed,
+  because the help target builds its list with its own `grep`. It is compared against every
+  target, not the documented ones: the weaker comparison moves both sides together, so
+  deleting a `## ` description would leave it green while `make help` quietly hid the
+  target. Every `make` command the documents name is checked to resolve too — which is how
+  this bullet's first draft failed, having described the phantom by writing it out as a
+  command a reader could paste.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
   against the built warehouse and assert each returns rows. `run_sql_file` deliberately
   surfaces a failure rather than raising — it logs and returns an empty frame — so without
