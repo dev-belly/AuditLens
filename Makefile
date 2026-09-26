@@ -9,7 +9,7 @@ PIP ?= $(PYTHON) -m pip
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-dev pipeline generate clean test test-fast coverage \
-        dashboard sql lint verify screenshots notebooks
+        dashboard sql verify screenshots notebooks
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) \

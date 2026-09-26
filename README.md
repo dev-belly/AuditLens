@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 407](https://img.shields.io/badge/tests-407%20passing-brightgreen.svg)](#testing)
+[![Tests: 444](https://img.shields.io/badge/tests-444%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **407 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **444 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -135,7 +135,7 @@ what an earlier version of this project's own summary implied.
 └────────────────┘          └────────────────────┘          └──────────────────┘
 ```
 
-`src/run_pipeline.py` runs all nine stages in ~30 seconds. Each stage is independently
+`src/run_pipeline.py` runs all ten stages in ~30 seconds. Each stage is independently
 runnable (`python src/audit_rules.py`, `python src/benford.py`, …), which is how the
 project was developed and how it is debugged.
 
@@ -510,7 +510,8 @@ Run them all with `make sql`, or point any SQL client at the file.
 AuditLens/
 ├── src/
 │   ├── utils.py                 # single source of truth: paths, thresholds, chart of accounts
-│   ├── data_generator.py        # seeded synthetic ledger + 9 anomaly injectors + data-quality defects
+│   ├── data_generator.py        # seeded synthetic ledger: masters, vouchers, data-quality defects
+│   ├── anomaly_injection.py     # the 9 anomaly patterns and the ground-truth labels they stamp
 │   ├── data_cleaning.py         # repair / flag / report; never imputes a missing narration
 │   ├── feature_engineering.py   # 20 audit-explainable features
 │   ├── audit_rules.py           # 9 procedures, noisy-OR combination, self-evaluation
@@ -527,7 +528,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 407 tests, incl. cross-process reproducibility
+├── tests/                       # 444 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -538,9 +539,10 @@ AuditLens/
 ├── notebooks/                   # 01 EDA · 02 audit analysis · 03 anomaly detection
 ├── tools/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
+│   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 407 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 444 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -664,10 +666,12 @@ and that guard was verified to fail when the fix is reverted.
 
 **"You report a Benford χ² p-value of 5e-10 next to 'close conformity'. Which is it?"**
 Both, and they answer different questions. χ² tests whether the distribution is
-*exactly* Benford, which with 30,000 observations it never is. MAD measures whether the
-departure is *large enough to matter*. The MAD is 0.00071. An auditor who acts on the
-p-value alone widens testing for no reason; the MAD is the measure that maps to the
-audit question.
+*exactly* Benford, which with 30,000 observations it never is — the first-two-digits test
+has 90 buckets and 30,128 observations, so it has the power to reject a departure far too
+small to act on. MAD measures whether the departure is *large enough to matter*: 0.00071
+across those 90 buckets, against 0.00218 for the first digit alone. Both sit inside
+Nigrini's close-conformity band. An auditor who acts on the p-value alone widens testing
+for no reason; the MAD is the measure that maps to the audit question.
 
 **"What would you do differently in production?"**
 Temporal validation and drift monitoring first — the current evaluation is a single
@@ -683,7 +687,7 @@ against a benchmark.
 
 | Document | Contents |
 |---|---|
-| [`docs/methodology.md`](docs/methodology.md) | Every threshold, every weight, every rule's rationale, and the seven places the first attempt was wrong |
+| [`docs/methodology.md`](docs/methodology.md) | Every threshold, every weight, every rule's rationale, and the eight places the first attempt was wrong |
 | [`docs/architecture.md`](docs/architecture.md) | Stage contracts, data contracts, design decisions, testing strategy |
 | `notebooks/01_eda.ipynb` | Population shape, amount distribution, seasonality, vendor concentration, data quality |
 | `notebooks/02_audit_analysis.ipynb` | The nine procedures, their precision/recall trade-off, and the full Benford analysis |
@@ -709,7 +713,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 407 tests
+python -m pytest tests/ -q     # 444 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -717,8 +721,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-407 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
-then runs the full suite. `make test-fast` skips the dashboard render suite.
+444 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
@@ -727,14 +730,16 @@ then runs the full suite. `make test-fast` skips the dashboard render suite.
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
 | `test_dashboard.py` | 63 | Renders all six pages in-process via `AppTest`, checks the workpaper handoff, and pins the no-ground-truth guard at both the rendered-output and grid-builder level |
+| `test_feature_engineering.py` | 9 | The model's feature matrix: no ground-truth column can reach it, the matrix and its descriptions cover exactly the same set, and the committed `model_metrics.json` records the features the code actually built |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
 | `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
 | `test_reporting.py` | 7 | The flag-vs-anomaly distinction in `detector_overlap` and stable ordering for equal risk scores in the review extract |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 | `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
-| `test_documentation.py` | 8 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total |
-| `test_readme_claims.py` | 21 | Every headline figure, all nine rules' flagged/precision/recall, the Benford and review-plan figures, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
+| `test_documentation.py` | 19 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total. Also pins the project-structure tree against the modules on disk, every relative link and embedded image against the filesystem, and the Makefile's `.PHONY` declaration against the targets it actually defines, against `make help`'s output, and against every `make` command the docs name |
+| `test_screenshots.py` | 11 | The six dashboard pages are named in four places — the `st.Page` titles, the `page_header` strings the views render, the capture tool's click labels and expected headings, and the committed PNGs — and all four must agree. Checked in both directions, so a rename cannot leave an orphan capture that the README still displays |
+| `test_readme_claims.py` | 27 | Every headline figure, the review-plan figures, all nine rules' flagged/precision/recall, the Benford table and every MAD quoted in the prose, the risk-band counts and values, the component weights, and the structural counts the prose quotes — checked against `outputs/reports/` and against the code |
 | `test_warehouse_contract.py` | 10 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails |
 | `test_review_plan.py` | 13 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, workpaper checksum and separate synthetic benchmark |
 
@@ -742,7 +747,8 @@ Six of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded
 label, the overstated model contribution, the notebooks committed with empty output
 cells, and the test-count guard that could not detect a stale count. `docs/methodology.md`
-documents each one.
+documents each one. A seventh guards a smaller slip of the same kind: this file advertised
+seven methodology entries while the document held eight, and nothing compared the two.
 
 ### What CI verifies
 

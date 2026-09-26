@@ -17,6 +17,7 @@ findings are worked over the following weeks.
 ```
                          ┌──────────────────────────────────────┐
                          │  src/data_generator.py               │
+                         │  src/anomaly_injection.py            │
                          │  Synthetic ledger: vouchers, vendors,│
                          │  employees + injected anomalies      │
                          └───────────────┬──────────────────────┘
@@ -75,7 +76,7 @@ one of them fails at 2am.
 
 | Stage | Module | Input | Output | Notes |
 |---|---|---|---|---|
-| 1 | `data_generator` | `GeneratorConfig` | `data/raw/*.csv` | 30,000 vouchers, 3% injected anomalies |
+| 1 | `data_generator` + `anomaly_injection` | `GeneratorConfig` | `data/raw/*.csv` | 30,000 vouchers, 3% injected anomalies |
 | 2 | `data_cleaning` | raw CSV | `*_clean.parquet`, `data_quality_report.json` | Repairs only what is safely repairable |
 | 3 | `feature_engineering` | clean parquet | `transactions_features.parquet` | 20 features, all audit-explainable |
 | 4 | `audit_rules` | features | rule flags, `rule_alerts.csv`, `rule_evaluation.csv` | 9 procedures, noisy-OR combination |
@@ -116,6 +117,45 @@ rather than slicing `frame.columns`, so a new column cannot appear in the vouche
 grid without someone deliberately adding it. The list of protected names lives once,
 in `src.database.GROUND_TRUTH_COLUMNS`, and the dashboard imports it — three copies
 of the same tuple is how one of them goes stale.
+
+### Two splits, both pure moves
+
+Two files crossed a thousand lines. Both were cut, and both cuts were pure moves: no
+logic changed, no draw reordered, no cell rewritten, and every artefact byte-identical
+afterwards. The verification is what makes a late refactor of the code that *produces*
+those artefacts safe to attempt at all.
+
+**`src/data_generator.py` → `src/data_generator.py` + `src/anomaly_injection.py`.**
+
+`anomaly_injection.py` owns the nine patterns and the ground-truth columns they stamp;
+`data_generator.py` owns the masters, the clean ledger and the data-quality defects.
+The seam is the ground-truth boundary described above, which is easier to police when
+the code that *writes* the labels is somewhere you can point at. Verified by diffing
+`outputs/` before and after, and guarded by `tests/test_reproducibility.py`.
+
+**`tools/build_notebooks.py` → `tools/build_notebooks.py` + `tools/notebook_content.py`.**
+
+`notebook_content.py` holds what the three notebooks *say* — the prelude, the three
+cell lists, the `NOTEBOOKS` registry. `build_notebooks.py` holds the machinery that
+turns them into `.ipynb`: the kernel spec, the figure capture, the table-id
+normalisation, the IPython-style output splitting. The seam is content versus
+mechanism, and it is the same seam that keeps the notebook guard honest — the content
+can change without touching the code that proves the build is deterministic. Verified
+by diffing `notebooks/` before and after.
+
+Three details are load-bearing:
+
+- `data_generator` re-exports `ANOMALY_MIX` and `inject_anomalies`, so the import
+  surface is unchanged for callers and tests.
+- `anomaly_injection` imports `GeneratorConfig` only under `TYPE_CHECKING`. It needs
+  the type for annotations and nothing else; importing it for real would make the two
+  modules import each other.
+- `notebook_content` defines no `PROJECT_ROOT` and reads no file. It is data the
+  builder consumes, not a second entry point — so it cannot drift into doing work.
+
+The structure tree in `README.md` is checked against the modules on disk by
+`tests/test_documentation.py`, in both directions: a file listed but absent fails, and
+a module present but unlisted fails.
 
 ### Rules and the model: measured, not assumed, to be complementary
 
@@ -218,7 +258,13 @@ up in production, so it is handled in one place.
   because a filter returned an empty frame.
 - **Constraint tests** assert the properties the project promises: no ground truth
   in the UI, a reason for every flag, weights that sum to one, scores that stay in
-  range.
+  range. The most consequential of these is `test_feature_engineering`: the model must
+  not be trained on `anomaly_label` / `anomaly_type`. Leakage is guarded at the grid
+  builder, at render time and in the SQL results, but those three protect the
+  *presentation* of the answer key. Only this one protects its *use*, and a leak there
+  would improve every metric in `model_metrics.json` while leaving the rest of the suite
+  green — the failure mode this project can least afford, because the honesty of the
+  model's evaluation is the whole point.
 - **Artefact tests** (`test_notebooks`) check the committed notebooks rather than the
   code that builds them: that every cell which prints or plots carries output, that each
   notebook embeds a chart, and that no random table id or logged timestamp survives. A
@@ -237,7 +283,45 @@ up in production, so it is handled in one place.
   `pytest --collect-only -q` in a subprocess and compares the testing table and the badge
   against the real collection, per file and in total. The purely textual version of that
   check could only prove the README agreed with itself, and let four new tests pass while
-  the documented counts went stale.
+  the documented counts went stale. `TestStructuralCounts` extends the same idea to the
+  counts that describe the code's *shape* rather than its output — "9 stages", "20
+  features", "9 patterns". Those were quoted across four documents and compared against
+  nothing, so adding one feature to `ML_FEATURE_COLUMNS` would have left all four stale
+  with every test green. The stage count is read from `run_pipeline.py` by counting the
+  `_banner` calls *and* the declared `total_steps`, so the numbering and the total cannot
+  drift apart either. `test_documentation` also resolves every relative link and embedded
+  image across the four markdown files. The README's dashboard section is six raw
+  `<img src="docs/screenshots/...">` tags, so a renamed capture turns them into broken
+  image icons on GitHub — a *visible* defect, and a different mistake from the one
+  `test_screenshots` catches: that file checks the PNGs against the capture tool, this one
+  checks the README's references to them.
+- **Capture tests** (`test_screenshots`). The six dashboard PNGs under
+  `docs/screenshots/` are the only way a reader sees the dashboard without running it,
+  and they were the last documented artefact here that nothing checked. The six pages
+  are named in four places — the `st.Page` titles in `dashboard/app.py`, the
+  `page_header` string each view renders, the capture tool's click labels and expected
+  headings, and the committed files themselves — and all four must agree. A rename in
+  the app or in a view does make `make screenshots` fail, but only after a browser
+  launch and a per-page timeout; these tests answer the same question in milliseconds.
+  The disk check runs in both directions, because the quiet failure is not a missing
+  capture but an *orphan*: the old PNG stays committed, the README keeps describing it,
+  and nothing disagrees with anything. `MIN_CAPTURE_BYTES` also catches a truncated or
+  placeholder file, which would otherwise display happily forever.
+- **Entry-point tests** (`test_documentation`). The Makefile is the project's advertised
+  interface — the README's quick start is three `make` commands — and nothing checked it.
+  `.PHONY` declared fifteen targets while the file defined fourteen: a `lint` target had no
+  recipe, so invoking it printed "Nothing to be done" and exited **0**. A command that looks
+  like it ran, reports success and inspects nothing is the worst shape a check can take, and
+  `make help` never listed it either, so the phantom was invisible to the one command a
+  reviewer would run. The guard pins the declaration against the targets the file really
+  defines, in both directions — an unlisted target is disabled by a file sharing its name —
+  and against `make help`'s *actual output*, run in a subprocess rather than re-parsed,
+  because the help target builds its list with its own `grep`. It is compared against every
+  target, not the documented ones: the weaker comparison moves both sides together, so
+  deleting a `## ` description would leave it green while `make help` quietly hid the
+  target. Every `make` command the documents name is checked to resolve too — which is how
+  this bullet's first draft failed, having described the phantom by writing it out as a
+  command a reader could paste.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
   against the built warehouse and assert each returns rows. `run_sql_file` raises
   on a broken query, so a missing column cannot leave the pipeline green. The same
