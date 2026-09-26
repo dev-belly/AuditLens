@@ -494,7 +494,36 @@ one reason — a score with no explanation is treated as a bug.
 
 ---
 
-## 7. Limitations
+## 7. Audit review selection
+
+The default workpaper budgets 300 vouchers. Selection is made only from scored
+transactions and rule alerts; `anomaly_label` and `anomaly_type` are absent from
+every decision field and from the auditor-facing CSV.
+
+1. Reserve 20% of the budget for random controls (60 vouchers).
+2. Select the case covering the most as-yet-unrepresented rule types until all
+   nine procedures are represented or the targeted budget is exhausted. Ties go
+   to higher risk score, then amount, then voucher ID. Six cases cover all nine
+   procedures in the committed sample.
+3. Fill the remaining 234 targeted slots by risk score, amount and voucher ID.
+4. Uniformly draw 60 without replacement from the 29,888 *remaining* vouchers
+   using seed 42. Sorting IDs before drawing makes input row order irrelevant.
+
+The random-route inclusion probability is $p=60/29{,}888=0.0020075$ and its
+sampling weight is $1/p$. These describe only the non-targeted sampling frame.
+No population exception estimate exists until an auditor determines outcomes
+from source documents. The targeted route has no design-based sampling weight.
+
+`review_plan_summary.json` records the policy, rule coverage, selection-input
+fingerprint and CSV checksum. `review_plan_benchmark.json` is a separate
+**synthetic-only** diagnostic computed after selection: 104 injected anomalies
+are in the workpaper, compared with 137 under pure risk ranking at the same
+budget. The 60 controls cost some immediate benchmark yield in exchange for a
+way to inspect the remainder. This does not measure live audit performance.
+
+---
+
+## 8. Limitations
 
 Stated plainly, because a portfolio project that overclaims is worse than one that
 does less.
@@ -534,7 +563,7 @@ does less.
 
 ---
 
-## 8. Reproducing every number
+## 9. Reproducing every number
 
 ```bash
 pip install -r requirements.txt

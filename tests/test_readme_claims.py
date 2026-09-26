@@ -242,6 +242,20 @@ class TestArtefactCounts:
         assert match, "the README no longer states a chart count"
         assert int(match.group(1)) == len(list(CHARTS.glob("*.png")))
 
+    def test_review_workpaper_claims_match_the_committed_selection(self) -> None:
+        section = _readme().split("## Audit review workpaper", 1)[1].split("## Dashboard", 1)[0]
+        report_dir = PROJECT_ROOT / "outputs" / "reports"
+        plan = json.loads((report_dir / "review_plan_summary.json").read_text())
+        benchmark = json.loads((report_dir / "review_plan_benchmark.json").read_text())
+
+        assert f"[{plan['budget']}-voucher workpaper]" in section
+        for route in ("rule_coverage", "risk_priority", "random_control"):
+            assert re.search(rf"\b{plan['selected_by_route'][route]}\b", section)
+        assert f"{plan['random_frame_count']:,}" in section
+        assert f"{benchmark['plan_injected_anomalies_found']} of the " in section
+        assert f"{benchmark['injected_anomalies_in_population']} injected" in section
+        assert f"**{benchmark['risk_only_same_budget_found']}**" in section
+
     def test_the_two_employee_figures_are_stated_and_distinct(self) -> None:
         """140 people are on the roster; 104 of them raise a voucher.
 

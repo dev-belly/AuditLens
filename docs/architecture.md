@@ -2,7 +2,7 @@
 
 ## What this document is for
 
-It explains how the nine pipeline stages fit together, what each module is
+It explains how the ten pipeline stages fit together, what each module is
 responsible for, and which decisions were made deliberately rather than by
 accident. It is written for someone reviewing the repository who wants to know why
 the code is shaped the way it is before reading it.
@@ -67,7 +67,7 @@ findings are worked over the following weeks.
                     │  sql/audit_queries.sql (15 named analyst queries)
 ```
 
-`src/run_pipeline.py` orchestrates stages 1–9 in order and prints a summary. Every
+`src/run_pipeline.py` orchestrates stages 1–10 in order and prints a summary. Every
 stage is also independently runnable (`python src/benford.py`), which matters when
 one of them fails at 2am.
 
@@ -84,6 +84,7 @@ one of them fails at 2am.
 | 7 | `risk_scoring` | rules + ML + Benford | `transactions_scored.parquet`, `vendor_risk.parquet` | 0–100 composite, `risk_reasons` |
 | 8 | `database` | scored parquet | `data/auditlens.db` | 5 tables, 7 indexes, 15 analyst queries; staged rebuild checked before replacement |
 | 9 | `reporting` | scored parquet | `outputs/charts/*.png`, `audit_summary.json`, `high_risk_transactions.csv` | The artefacts that get circulated |
+| 10 | `review_plan` | scored ledger + rule alerts | `review_plan.csv`, `review_plan_summary.json`, synthetic-only benchmark | Fixed-budget rule coverage, risk ranking and a probability sample of the remaining population |
 
 ## Design decisions worth defending
 
@@ -161,6 +162,17 @@ dashboard reads from it by preference, so the app and the SQL path cannot diverg
 The database is staged before replacement: every voucher's alert count must match
 its alert rows, and the headline population, amount and risk-band counts must
 reconcile with the transaction table. A failed check leaves the prior file intact.
+
+### The review queue separates judgment from probability sampling
+
+`src/review_plan.py` reserves a configurable number of places for seeded random
+controls after selecting cases for rule coverage and risk priority. The random
+frame is the *remaining* population, so its inclusion probability is the number
+drawn divided by that frame size. Targeted cases carry no sampling weight. The
+workpaper cannot read the injected labels; a separate synthetic-only benchmark
+grades the completed selection. Both the source decision inputs and the written
+CSV have SHA-256 digests in the selection record, so a reviewer can tie the
+workpaper to its inputs and detect a changed export.
 
 ### Data cleaning flags rather than fixes
 

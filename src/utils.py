@@ -57,6 +57,9 @@ RULE_EVALUATION_CSV: Path = REPORT_DIR / "rule_evaluation.csv"
 MODEL_METRICS_JSON: Path = REPORT_DIR / "model_metrics.json"
 BENFORD_RESULTS_JSON: Path = REPORT_DIR / "benford_results.json"
 HIGH_RISK_CSV: Path = REPORT_DIR / "high_risk_transactions.csv"
+REVIEW_PLAN_CSV: Path = REPORT_DIR / "review_plan.csv"
+REVIEW_PLAN_SUMMARY_JSON: Path = REPORT_DIR / "review_plan_summary.json"
+REVIEW_PLAN_BENCHMARK_JSON: Path = REPORT_DIR / "review_plan_benchmark.json"
 
 # --------------------------------------------------------------------------- #
 # Reproducibility

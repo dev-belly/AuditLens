@@ -8,6 +8,8 @@ pages; this one exists to support a conversation, not an investigation.
 
 from __future__ import annotations
 
+import hashlib
+
 import pandas as pd
 import streamlit as st
 
@@ -35,6 +37,8 @@ from dashboard.components import (
     risk_legend,
     section,
 )
+from src.review_plan import selection_fingerprint
+from src.utils import REVIEW_PLAN_CSV, REVIEW_PLAN_SUMMARY_JSON, load_json
 
 
 def render() -> None:
@@ -327,6 +331,51 @@ def render() -> None:
         "claim about performance on a live engagement.",
         kind="warn",
     )
+
+    # ----------------------------------------------------------------- #
+    # Workpaper handoff
+    # ----------------------------------------------------------------- #
+    section(
+        "Audit review workpaper",
+        "A fixed review budget combines procedure coverage, risk ranking and a "
+        "seeded control sample from the vouchers left after targeted selection.",
+    )
+    if REVIEW_PLAN_CSV.exists() and REVIEW_PLAN_SUMMARY_JSON.exists():
+        workpaper = REVIEW_PLAN_CSV.read_bytes()
+        plan = load_json(REVIEW_PLAN_SUMMARY_JSON)
+        if (hashlib.sha256(workpaper).hexdigest() == plan.get("queue_sha256")
+                and plan.get("population_count") == len(frame)
+                and plan.get("source_sha256") == selection_fingerprint(frame, alerts)):
+            routes = plan["selected_by_route"]
+            kpi_row([
+                {"label": "Budget", "value": count(plan["budget"]), "delta": "vouchers for review"},
+                {"label": "Risk priority", "value": count(routes["risk_priority"]),
+                 "delta": "highest remaining scores"},
+                {"label": "Rule coverage", "value": count(routes["rule_coverage"]),
+                 "delta": f"{len(plan['selected_rule_keys'])} procedures represented"},
+                {"label": "Random controls", "value": count(routes["random_control"]),
+                 "delta": f"from {count(plan['random_frame_count'])} non-targeted vouchers"},
+            ])
+            st.write("")
+            note(
+                "The random inclusion probability applies only to the non-targeted "
+                "frame. The targeted list is judgmental; no exception rate is inferred "
+                "until an auditor reviews source documents."
+            )
+            preview = pd.read_csv(REVIEW_PLAN_CSV).head(10)
+            st.dataframe(
+                preview[["review_order", "transaction_id", "selection_route",
+                         "risk_level", "audit_risk_score", "debit_amount", "selection_reason"]],
+                width="stretch", hide_index=True,
+            )
+            st.download_button(
+                "Download review workpaper CSV", workpaper,
+                file_name="audit_review_plan.csv", mime="text/csv",
+            )
+        else:
+            st.warning("The review workpaper does not match its selection record. Regenerate the pipeline.")
+    else:
+        st.info("Run the pipeline to generate the audit review workpaper.")
 
     # ----------------------------------------------------------------- #
     # Where to go next

@@ -198,6 +198,15 @@ class TestPageContent:
         assert "Flagged by rules" in text
         assert "High or critical" in text
 
+    def test_executive_overview_hands_off_a_budgeted_review_workpaper(
+        self, rendered_pages: dict[str, AppTest]
+    ) -> None:
+        text = _rendered_text(rendered_pages["Executive Overview"])
+
+        assert "Audit review workpaper" in text
+        assert "Random controls" in text
+        assert "non-targeted" in text
+
     def test_executive_overview_states_the_benford_limitation(
         self, rendered_pages: dict[str, AppTest]
     ) -> None:

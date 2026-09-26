@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 392](https://img.shields.io/badge/tests-392%20passing-brightgreen.svg)](#testing)
+[![Tests: 407](https://img.shields.io/badge/tests-407%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **392 tests**, including dashboard render and warehouse integrity checks |
+| Test suite | **407 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -385,13 +385,45 @@ reason — a score with no explanation is treated as a bug, and currently zero o
 
 ---
 
+## Audit review workpaper
+
+A score becomes useful when an engagement team has a finite review budget. The
+[300-voucher workpaper](outputs/reports/review_plan.csv) selects 6 cases that
+jointly cover all nine audit procedures, 234 further cases by risk score, and 60
+seeded random controls from the **29,888 vouchers left after targeted selection**.
+It includes each case's selection reason, triggered rules, risk explanation, and
+blank outcome, evidence-reference and reviewer-note fields. No injected answer-key
+column enters the queue or its selection fingerprint.
+
+The random controls have an inclusion probability of **60 / 29,888 = 0.2007%**
+within that remaining frame. The [selection record](outputs/reports/review_plan_summary.json)
+states the seed, policy, covered rules, population fingerprint and a SHA-256 of
+the CSV. Those probabilities and weights apply **only** to the random route;
+targeted cases do not support a population-wide exception estimate. A reviewer
+must examine documents before estimating anything.
+
+The separate [synthetic benchmark](outputs/reports/review_plan_benchmark.json)
+shows the cost of reserving controls: the plan contains **104 of the 919 injected
+anomalies** in 300 cases; pure risk ranking would contain **137** at the same
+budget. This is a review-design trade-off, not an improved detection claim. On a
+live engagement the answer key would not exist, and this benchmark file is not
+produced.
+
+```bash
+python src/run_pipeline.py --review-budget 300 --review-random-share 0.2
+# Or regenerate only the workpaper from an existing pipeline run:
+python src/review_plan.py --budget 300 --random-share 0.2 --seed 42
+```
+
+---
+
 ## Dashboard
 
 Six pages, built with `st.navigation` / `st.Page`:
 
 | Page | Answers |
 |---|---|
-| **Executive Overview** | What is the population, what did we flag, what does the triage cost? |
+| **Executive Overview** | What is the population, what did we flag, and how does the auditor download the budgeted review workpaper? |
 | **Transaction Explorer** | Why is *this* voucher flagged? Full drill-down: reasons, control timeline, score composition with weights, procedure-by-procedure result, peer comparison. |
 | **Audit Rules** | What does each procedure test, at what threshold, and how well did it perform? |
 | **Benford Analysis** | Observed vs expected digits, MAD, χ², per-bucket z, and the account/process disaggregation that is the actual deliverable. |
@@ -487,14 +519,15 @@ AuditLens/
 │   ├── risk_scoring.py          # composite score, bands, reasons, vendor risk
 │   ├── database.py              # SQLite warehouse + query runner
 │   ├── reporting.py             # 10 charts, CJK-aware
-│   └── run_pipeline.py          # 9 stages, ~30s
+│   ├── review_plan.py           # budgeted review queue + random controls
+│   └── run_pipeline.py          # 10 stages, ~30s
 ├── dashboard/
 │   ├── app.py                   # st.navigation router
 │   ├── common.py                # cached data access, theme, filters, formatters
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 392 tests, incl. cross-process reproducibility
+├── tests/                       # 407 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -507,7 +540,7 @@ AuditLens/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 392 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 407 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -655,7 +688,7 @@ against a benchmark.
 | `notebooks/01_eda.ipynb` | Population shape, amount distribution, seasonality, vendor concentration, data quality |
 | `notebooks/02_audit_analysis.ipynb` | The nine procedures, their precision/recall trade-off, and the full Benford analysis |
 | `notebooks/03_anomaly_detection.ipynb` | Isolation Forest, confusion matrix, the budget curve, and the honest answer to "does the model add anything?" |
-| `outputs/reports/` | `audit_summary.json`, `rule_evaluation.csv`, `model_metrics.json`, `benford_results.json`, `data_quality_report.json`, `high_risk_transactions.csv` |
+| `outputs/reports/` | `audit_summary.json`, `rule_evaluation.csv`, `model_metrics.json`, `benford_results.json`, `data_quality_report.json`, `high_risk_transactions.csv`, the review workpaper and its selection and benchmark records |
 | `outputs/charts/` | 10 charts: risk distribution, component contributions, Benford observed-vs-expected, confusion matrix, precision@k, top risk vendors and accounts |
 | `docs/screenshots/` | The six dashboard captures shown above, plus how to regenerate them |
 
@@ -676,7 +709,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 392 tests
+python -m pytest tests/ -q     # 407 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -684,7 +717,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-392 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
+407 tests. `make test` runs the lot; `make verify` first regenerates the ledger,
 then runs the full suite. `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
@@ -693,7 +726,7 @@ then runs the full suite. `make test-fast` skips the dashboard render suite.
 | `test_audit_rules.py` | 36 | One class per procedure, plus the text-encoded-label fallback in `evaluate()` |
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
-| `test_dashboard.py` | 62 | Renders all six pages in-process via `AppTest` and asserts on the text each one emits; also pins the no-ground-truth guard at both the rendered-output and grid-builder level |
+| `test_dashboard.py` | 63 | Renders all six pages in-process via `AppTest`, checks the workpaper handoff, and pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
 | `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
 | `test_reporting.py` | 7 | The flag-vs-anomaly distinction in `detector_overlap` and stable ordering for equal risk scores in the review extract |
@@ -701,8 +734,9 @@ then runs the full suite. `make test-fast` skips the dashboard render suite.
 | `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
 | `test_documentation.py` | 8 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total |
-| `test_readme_claims.py` | 20 | Every headline figure, all nine rules' flagged/precision/recall, the Benford table, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
+| `test_readme_claims.py` | 21 | Every headline figure, all nine rules' flagged/precision/recall, the Benford and review-plan figures, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
 | `test_warehouse_contract.py` | 10 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails |
+| `test_review_plan.py` | 13 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, workpaper checksum and separate synthetic benchmark |
 
 Six of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded

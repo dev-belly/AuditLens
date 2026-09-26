@@ -20,6 +20,7 @@ Stage           Module
 7. Risk score   :mod:`src.risk_scoring`
 8. Warehouse    :mod:`src.database`
 9. Reporting    :mod:`src.reporting`
+10. Review plan :mod:`src.review_plan`
 ==============  ============================================================
 
 Use ``--skip-generation`` to reuse an existing synthetic extract, and
@@ -48,6 +49,7 @@ from src.utils import (
     MODEL_METRICS_JSON,
     RANDOM_SEED,
     REPORT_DIR,
+    REVIEW_PLAN_CSV,
     SCORED_TRANSACTIONS,
     TRANSACTIONS_FEATURES,
     VENDOR_RISK_TABLE,
@@ -71,6 +73,8 @@ def run_pipeline(
     generate: bool = True,
     n_transactions: int = 30_000,
     seed: int = RANDOM_SEED,
+    review_budget: int = 300,
+    review_random_share: float = 0.2,
 ) -> dict[str, Any]:
     """Execute the full AuditLens pipeline.
 
@@ -79,18 +83,20 @@ def run_pipeline(
             existing extract in ``data/raw`` is reused.
         n_transactions: Number of vouchers to generate.
         seed: Random seed for the generator.
+        review_budget: Number of vouchers in the auditor workpaper.
+        review_random_share: Share reserved for random controls from the remainder.
 
     Returns:
         Mapping with the key artefacts of every stage.
     """
     ensure_directories()
     started = time.perf_counter()
-    total_steps = 9
+    total_steps = 10
     results: dict[str, Any] = {}
 
     # Imported here so that `--help` does not pay the import cost.
     from src import audit_rules, anomaly_detection, benford, data_cleaning, database
-    from src import data_generator, feature_engineering, reporting, risk_scoring
+    from src import data_generator, feature_engineering, reporting, review_plan, risk_scoring
 
     # ---------------------------------------------------------------- 1. data
     if generate:
@@ -179,6 +185,14 @@ def run_pipeline(
     report_result = reporting.run_reporting(scored, vendor_risk, rule_result["alerts"])
     results["reporting"] = report_result
 
+    # ---------------------------------------------------------- 10. review plan
+    _banner(10, total_steps, "Audit review workpaper")
+    results["review_plan"] = review_plan.run_review_plan(
+        scored,
+        rule_result["alerts"],
+        review_plan.ReviewPolicy(review_budget, review_random_share, seed),
+    )
+
     elapsed = time.perf_counter() - started
     _print_summary(summary, evaluation, ml_result["evaluation"], sql_results, elapsed)
     return results
@@ -228,6 +242,7 @@ def _print_summary(
     LOGGER.info("  charts              %s", CHART_DIR)
     LOGGER.info("  reports             %s", REPORT_DIR)
     LOGGER.info("  review extract      %s", HIGH_RISK_CSV)
+    LOGGER.info("  review workpaper    %s", REVIEW_PLAN_CSV)
     LOGGER.info("")
     LOGGER.info("SQL analytics: %s queries executed", len(sql_results))
     LOGGER.info("")
@@ -239,6 +254,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the complete AuditLens pipeline.")
     parser.add_argument("--transactions", type=int, default=30_000, help="number of vouchers to generate")
     parser.add_argument("--seed", type=int, default=RANDOM_SEED, help="random seed")
+    parser.add_argument("--review-budget", type=int, default=300, help="vouchers in the review workpaper")
+    parser.add_argument("--review-random-share", type=float, default=0.2,
+                        help="share reserved for random controls from the remainder")
     parser.add_argument(
         "--skip-generation",
         action="store_true",
@@ -254,6 +272,8 @@ def main(argv: list[str] | None = None) -> int:
         generate=not args.skip_generation,
         n_transactions=args.transactions,
         seed=args.seed,
+        review_budget=args.review_budget,
+        review_random_share=args.review_random_share,
     )
     return 0
 
