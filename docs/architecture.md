@@ -17,6 +17,7 @@ findings are worked over the following weeks.
 ```
                          ┌──────────────────────────────────────┐
                          │  src/data_generator.py               │
+                         │  src/anomaly_injection.py            │
                          │  Synthetic ledger: vouchers, vendors,│
                          │  employees + injected anomalies      │
                          └───────────────┬──────────────────────┘
@@ -75,7 +76,7 @@ one of them fails at 2am.
 
 | Stage | Module | Input | Output | Notes |
 |---|---|---|---|---|
-| 1 | `data_generator` | `GeneratorConfig` | `data/raw/*.csv` | 30,000 vouchers, 3% injected anomalies |
+| 1 | `data_generator` + `anomaly_injection` | `GeneratorConfig` | `data/raw/*.csv` | 30,000 vouchers, 3% injected anomalies |
 | 2 | `data_cleaning` | raw CSV | `*_clean.parquet`, `data_quality_report.json` | Repairs only what is safely repairable |
 | 3 | `feature_engineering` | clean parquet | `transactions_features.parquet` | 20 features, all audit-explainable |
 | 4 | `audit_rules` | features | rule flags, `rule_alerts.csv`, `rule_evaluation.csv` | 9 procedures, noisy-OR combination |
@@ -115,6 +116,45 @@ rather than slicing `frame.columns`, so a new column cannot appear in the vouche
 grid without someone deliberately adding it. The list of protected names lives once,
 in `src.database.GROUND_TRUTH_COLUMNS`, and the dashboard imports it — three copies
 of the same tuple is how one of them goes stale.
+
+### Two splits, both pure moves
+
+Two files crossed a thousand lines. Both were cut, and both cuts were pure moves: no
+logic changed, no draw reordered, no cell rewritten, and every artefact byte-identical
+afterwards. The verification is what makes a late refactor of the code that *produces*
+those artefacts safe to attempt at all.
+
+**`src/data_generator.py` → `src/data_generator.py` + `src/anomaly_injection.py`.**
+
+`anomaly_injection.py` owns the nine patterns and the ground-truth columns they stamp;
+`data_generator.py` owns the masters, the clean ledger and the data-quality defects.
+The seam is the ground-truth boundary described above, which is easier to police when
+the code that *writes* the labels is somewhere you can point at. Verified by diffing
+`outputs/` before and after, and guarded by `tests/test_reproducibility.py`.
+
+**`tools/build_notebooks.py` → `tools/build_notebooks.py` + `tools/notebook_content.py`.**
+
+`notebook_content.py` holds what the three notebooks *say* — the prelude, the three
+cell lists, the `NOTEBOOKS` registry. `build_notebooks.py` holds the machinery that
+turns them into `.ipynb`: the kernel spec, the figure capture, the table-id
+normalisation, the IPython-style output splitting. The seam is content versus
+mechanism, and it is the same seam that keeps the notebook guard honest — the content
+can change without touching the code that proves the build is deterministic. Verified
+by diffing `notebooks/` before and after.
+
+Three details are load-bearing:
+
+- `data_generator` re-exports `ANOMALY_MIX` and `inject_anomalies`, so the import
+  surface is unchanged for callers and tests.
+- `anomaly_injection` imports `GeneratorConfig` only under `TYPE_CHECKING`. It needs
+  the type for annotations and nothing else; importing it for real would make the two
+  modules import each other.
+- `notebook_content` defines no `PROJECT_ROOT` and reads no file. It is data the
+  builder consumes, not a second entry point — so it cannot drift into doing work.
+
+The structure tree in `README.md` is checked against the modules on disk by
+`tests/test_documentation.py`, in both directions: a file listed but absent fails, and
+a module present but unlisted fails.
 
 ### Rules and the model: measured, not assumed, to be complementary
 

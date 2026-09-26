@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 381](https://img.shields.io/badge/tests-381%20passing-brightgreen.svg)](#testing)
+[![Tests: 384](https://img.shields.io/badge/tests-384%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **381 tests**, all passing — including in-process render tests for all six dashboard pages |
+| Test suite | **384 tests**, all passing — including in-process render tests for all six dashboard pages |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -478,7 +478,8 @@ Run them all with `make sql`, or point any SQL client at the file.
 AuditLens/
 ├── src/
 │   ├── utils.py                 # single source of truth: paths, thresholds, chart of accounts
-│   ├── data_generator.py        # seeded synthetic ledger + 9 anomaly injectors + data-quality defects
+│   ├── data_generator.py        # seeded synthetic ledger: masters, vouchers, data-quality defects
+│   ├── anomaly_injection.py     # the 9 anomaly patterns and the ground-truth labels they stamp
 │   ├── data_cleaning.py         # repair / flag / report; never imputes a missing narration
 │   ├── feature_engineering.py   # 20 audit-explainable features
 │   ├── audit_rules.py           # 9 procedures, noisy-OR combination, self-evaluation
@@ -494,7 +495,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 381 tests, incl. cross-process reproducibility
+├── tests/                       # 384 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -505,9 +506,10 @@ AuditLens/
 ├── notebooks/                   # 01 EDA · 02 audit analysis · 03 anomaly detection
 ├── tools/
 │   ├── build_notebooks.py       # regenerates the notebooks; executes every cell before writing
+│   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 381 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 384 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -676,7 +678,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 381 tests
+python -m pytest tests/ -q     # 384 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -684,7 +686,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-381 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
+384 tests, all passing. `make test` runs the lot; `make test-fast` skips the dashboard
 render suite.
 
 | File | Tests | What it pins down |
@@ -700,7 +702,7 @@ render suite.
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
 | `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
-| `test_documentation.py` | 8 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total |
+| `test_documentation.py` | 11 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total. Also pins the project-structure tree against the modules on disk |
 | `test_readme_claims.py` | 20 | Every headline figure, all nine rules' flagged/precision/recall, the Benford table, the risk-band counts and values, and the component weights — checked against `outputs/reports/` |
 
 Six of these are regression guards for bugs that were actually shipped during

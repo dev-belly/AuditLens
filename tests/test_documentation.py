@@ -1,10 +1,13 @@
-"""The README's testing table, kept honest.
+"""The README's structural claims, kept honest.
 
-The test count is restated in seven places in the README plus a thirteen-row table, and
-it has drifted repeatedly during development (302 -> 331 -> 351 -> 374 -> 378). Every
-drift was a document that was correct when written and silently wrong afterwards, which
-is the same failure mode as the SQL header that said "Fourteen queries" while the file
-held fifteen.
+Two kinds of claim live here, both of the same shape: a fact restated in the README
+that the repository can contradict without anyone noticing.
+
+**The test count.** It appears in seven places in the README plus a thirteen-row
+table, and it has drifted repeatedly during development (302 -> 331 -> 351 -> 374 ->
+378). Every drift was a document that was correct when written and silently wrong
+afterwards, which is the same failure mode as the SQL header that said "Fourteen
+queries" while the file held fifteen.
 
 The first version of this file compared the table only against the badge - a pure text
 check, chosen so that adding a test could not break it. That choice is why the drift it
@@ -12,18 +15,22 @@ was written to prevent happened again: adding four tests left the table claiming
 18 for files that now held 57 and 20, and every guard stayed green, because the table and
 the badge agreed with each other and neither was compared to reality.
 
-So the checks now come in two kinds, and both are needed:
+**The project-structure tree.** Every module the README lists must exist, and every
+module in ``src/`` must be listed. A rename or an extraction leaves a ghost in the tree
+otherwise, and the tree is the first thing a reviewer reads to understand the layout.
+
+So the checks come in two kinds, and both are needed:
 
 * **Text checks** - the table lists every test file, every row names a real file, and the
   rows sum to the badge. Cheap, and they cannot break spuriously.
-* **One introspection check** - the rows and the badge are compared against what pytest
-  actually collects. Without this the whole file only proves the README agrees with
-  itself.
+* **Introspection checks** - the rows and the badge are compared against what pytest
+  actually collects, and the tree against what is on disk. Without these the whole file
+  only proves the README agrees with itself.
 
-The introspection runs ``pytest --collect-only`` in a subprocess rather than reading
-``request.session.items``. A session describes only the tests the current invocation
-collected, so running this file on its own would compare the table against a single
-file and fail for a reason that has nothing to do with the documentation. A fresh
+The test-count introspection runs ``pytest --collect-only`` in a subprocess rather than
+reading ``request.session.items``. A session describes only the tests the current
+invocation collected, so running this file on its own would compare the table against a
+single file and fail for a reason that has nothing to do with the documentation. A fresh
 collection over ``tests/`` always describes the whole suite.
 """
 
@@ -42,6 +49,12 @@ TESTS_DIR = PROJECT_ROOT / "tests"
 #: ``| `test_foo.py` | 12 | what it pins down |``
 TABLE_ROW = re.compile(r"^\|\s*`(test_\w+)\.py`\s*\|\s*(\d+)\s*\|", re.MULTILINE)
 
+#: ``├── utils.py`` / ``└── ci_summary.py`` inside the README's structure tree.
+TREE_FILE = re.compile(r"[├└]──\s+(\S+\.py)")
+
+#: Directories the structure tree describes, searched in this order.
+TREE_DIRS = ("src", "dashboard", "tools", "tests")
+
 #: ``tests/test_foo.py: 12`` - pytest's per-file summary under ``--collect-only -q``.
 #: Matched on the stem rather than the full path, because pytest echoes back whatever
 #: path form it was handed.
@@ -54,6 +67,11 @@ def _table_rows() -> dict[str, int]:
 
 def _test_files_on_disk() -> set[str]:
     return {path.stem for path in TESTS_DIR.glob("test_*.py")}
+
+
+def _tree_files() -> set[str]:
+    """Every ``.py`` filename the README's project-structure tree lists."""
+    return set(TREE_FILE.findall(README.read_text("utf-8")))
 
 
 def _stated_total() -> int:
@@ -150,3 +168,38 @@ class TestTheDocumentedCountsAreTrue:
             "pytest collected nothing from these files, so their counts are unverified: "
             f"{missing}"
         )
+
+
+class TestProjectStructure:
+    """The structure tree must describe the repository that exists.
+
+    The tree is how a reviewer works out where anything lives, so a ghost entry or a
+    missing module is worse than an out-of-date number: it misdirects someone who has
+    no other map. ``src/anomaly_injection.py`` was extracted from ``data_generator.py``
+    and had to be added here; without a guard the next extraction would not be.
+    """
+
+    def test_the_tree_lists_some_files(self) -> None:
+        """Guards the parser: an empty match would make the other two vacuous."""
+        assert _tree_files(), "could not parse any filenames out of the README tree"
+
+    def test_every_file_in_the_tree_exists(self) -> None:
+        """A renamed or deleted module must not leave a ghost in the tree."""
+        ghosts = sorted(
+            name
+            for name in _tree_files()
+            if not any((PROJECT_ROOT / directory / name).exists() for directory in TREE_DIRS)
+        )
+        assert not ghosts, f"the README structure tree names files that do not exist: {ghosts}"
+
+    def test_every_module_appears_in_the_tree(self) -> None:
+        """A new module must be documented, not merely committed."""
+        documented = _tree_files()
+        missing: list[str] = []
+        for directory in ("src", "tools", "dashboard"):
+            missing += sorted(
+                path.name
+                for path in (PROJECT_ROOT / directory).glob("*.py")
+                if path.name != "__init__.py" and path.name not in documented
+            )
+        assert not missing, f"these modules are missing from the README tree: {missing}"
