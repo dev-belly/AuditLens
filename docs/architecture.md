@@ -243,7 +243,13 @@ up in production, so it is handled in one place.
   because a filter returned an empty frame.
 - **Constraint tests** assert the properties the project promises: no ground truth
   in the UI, a reason for every flag, weights that sum to one, scores that stay in
-  range.
+  range. The most consequential of these is `test_feature_engineering`: the model must
+  not be trained on `anomaly_label` / `anomaly_type`. Leakage is guarded at the grid
+  builder, at render time and in the SQL results, but those three protect the
+  *presentation* of the answer key. Only this one protects its *use*, and a leak there
+  would improve every metric in `model_metrics.json` while leaving the rest of the suite
+  green — the failure mode this project can least afford, because the honesty of the
+  model's evaluation is the whole point.
 - **Artefact tests** (`test_notebooks`) check the committed notebooks rather than the
   code that builds them: that every cell which prints or plots carries output, that each
   notebook embeds a chart, and that no random table id or logged timestamp survives. A
@@ -262,7 +268,13 @@ up in production, so it is handled in one place.
   `pytest --collect-only -q` in a subprocess and compares the testing table and the badge
   against the real collection, per file and in total. The purely textual version of that
   check could only prove the README agreed with itself, and let four new tests pass while
-  the documented counts went stale.
+  the documented counts went stale. `TestStructuralCounts` extends the same idea to the
+  counts that describe the code's *shape* rather than its output — "9 stages", "20
+  features", "9 patterns". Those were quoted across four documents and compared against
+  nothing, so adding one feature to `ML_FEATURE_COLUMNS` would have left all four stale
+  with every test green. The stage count is read from `run_pipeline.py` by counting the
+  `_banner` calls *and* the declared `total_steps`, so the numbering and the total cannot
+  drift apart either.
 - **Capture tests** (`test_screenshots`). The six dashboard PNGs under
   `docs/screenshots/` are the only way a reader sees the dashboard without running it,
   and they were the last documented artefact here that nothing checked. The six pages
