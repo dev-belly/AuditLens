@@ -34,6 +34,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+from math import isclose, isfinite
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
@@ -327,7 +328,7 @@ def _populate_warehouse(
 
 
 def _validate_warehouse(engine: Engine) -> None:
-    """Reject ambiguous keys and alerts with no underlying voucher.
+    """Reconcile the staged warehouse with its detail and headline totals.
 
     All checks run against the staged database. A failed build therefore leaves
     the previous dashboard database in place instead of publishing bad totals.
@@ -355,6 +356,73 @@ def _validate_warehouse(engine: Engine) -> None:
             "OR t.transaction_id IS NULL LIMIT 1"
         )).first():
             raise ValueError("audit_alerts contains an incomplete or orphaned alert")
+
+        transaction_columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(transactions)")
+        }
+        if "rule_alert_count" in transaction_columns:
+            # A valid foreign key alone does not prove the alert export is complete.
+            # Compare every voucher's rule count with the long-format evidence.
+            mismatch = connection.execute(text(
+                "SELECT t.transaction_id FROM transactions AS t "
+                "LEFT JOIN (SELECT transaction_id, COUNT(*) AS n FROM audit_alerts "
+                "GROUP BY transaction_id) AS a ON a.transaction_id = t.transaction_id "
+                "WHERE t.rule_alert_count IS NULL "
+                "OR t.rule_alert_count != COALESCE(a.n, 0) LIMIT 1"
+            )).first()
+            if mismatch:
+                raise ValueError(
+                    f"audit_alerts disagrees with rule_alert_count for {mismatch[0]}"
+                )
+
+        has_summary = connection.execute(text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='risk_summary'"
+        )).first()
+        if has_summary:
+            required = (
+                "total_transactions", "total_amount", "flagged_transactions",
+                "high_risk_transactions", "critical_transactions", "unique_vendors",
+            )
+            # Only the scored ledger can support the headline reconciliation.
+            missing = {"debit_amount", "risk_level", "vendor_id", "rule_alert_count"} - transaction_columns
+            if missing:
+                raise ValueError(f"transactions is missing summary fields: {sorted(missing)}")
+            summary_columns = {
+                row[1] for row in connection.exec_driver_sql("PRAGMA table_info(risk_summary)")
+            }
+            missing = set(required) - summary_columns
+            if missing:
+                raise ValueError(f"risk_summary is missing fields: {sorted(missing)}")
+            summary = connection.execute(text(
+                "SELECT total_transactions, total_amount, flagged_transactions, "
+                "high_risk_transactions, critical_transactions, unique_vendors "
+                "FROM risk_summary"
+            )).mappings().one()
+            actual = connection.execute(text(
+                "SELECT COUNT(*) AS total_transactions, "
+                "COALESCE(SUM(debit_amount), 0) AS total_amount, "
+                "COALESCE(SUM(CASE WHEN rule_alert_count > 0 THEN 1 ELSE 0 END), 0) "
+                "AS flagged_transactions, "
+                "COALESCE(SUM(CASE WHEN risk_level IN ('High', 'Critical') "
+                "THEN 1 ELSE 0 END), 0) AS high_risk_transactions, "
+                "COALESCE(SUM(CASE WHEN risk_level = 'Critical' "
+                "THEN 1 ELSE 0 END), 0) AS critical_transactions, "
+                "COUNT(DISTINCT vendor_id) AS unique_vendors FROM transactions"
+            )).mappings().one()
+            for field in required:
+                reported, measured = summary[field], actual[field]
+                if field == "total_amount":
+                    valid = (
+                        reported is not None and isfinite(float(reported))
+                        and isclose(float(reported), float(measured), rel_tol=0, abs_tol=0.005)
+                    )
+                else:
+                    valid = reported == measured
+                if not valid:
+                    raise ValueError(
+                        f"risk_summary.{field} disagrees with transactions: "
+                        f"reported {reported}, measured {measured}"
+                    )
 
 
 # --------------------------------------------------------------------------- #

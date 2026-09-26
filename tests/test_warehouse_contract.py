@@ -112,6 +112,71 @@ def test_invalid_ledger_keys_and_orphaned_alerts_never_replace_warehouse(
     assert not list(tmp_path.glob(".auditlens-build-*.db"))
 
 
+def _reconciliation_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
+    transactions = pd.DataFrame({
+        "transaction_id": ["TX1", "TX2"],
+        "vendor_id": ["V1", "V1"],
+        "account_code": ["1001", "1001"],
+        "transaction_date": ["2025-01-01", "2025-01-02"],
+        "debit_amount": [100.0, 200.0],
+        "rule_alert_count": [1, 0],
+        "risk_level": ["High", "Low"],
+        "audit_risk_score": [70.0, 10.0],
+    })
+    vendors = pd.DataFrame({"vendor_id": ["V1"]})
+    employees = pd.DataFrame({"employee_id": ["E1"]})
+    alerts = pd.DataFrame({"transaction_id": ["TX1"], "rule_key": ["weekend_posting"]})
+    summary = {
+        "total_transactions": 2,
+        "total_amount": 300.0,
+        "flagged_transactions": 1,
+        "high_risk_transactions": 1,
+        "critical_transactions": 0,
+        "unique_vendors": 1,
+    }
+    return transactions, vendors, employees, alerts, summary
+
+
+def test_reconciled_warehouse_publishes_the_detail_and_summary(tmp_path, monkeypatch) -> None:
+    live_path = tmp_path / "auditlens.db"
+    monkeypatch.setattr(database, "DB_PATH", live_path)
+    counts = database.load_warehouse(*_reconciliation_inputs())
+
+    assert counts["transactions"] == 2
+    assert counts["audit_alerts"] == 1
+    with sqlite3.connect(live_path) as connection:
+        assert connection.execute("SELECT total_amount FROM risk_summary").fetchone() == (300.0,)
+
+
+@pytest.mark.parametrize("corruption", ["missing_alert", "stale_total", "stale_flagged"])
+def test_reconciliation_failure_preserves_previous_warehouse(
+    tmp_path, monkeypatch, corruption: str
+) -> None:
+    live_path = tmp_path / "auditlens.db"
+    with sqlite3.connect(live_path) as connection:
+        connection.execute("CREATE TABLE previous_build (version INTEGER)")
+        connection.execute("INSERT INTO previous_build VALUES (1)")
+    monkeypatch.setattr(database, "DB_PATH", live_path)
+
+    transactions, vendors, employees, alerts, summary = _reconciliation_inputs()
+    if corruption == "missing_alert":
+        alerts = alerts.iloc[:0].copy()
+        error = "audit_alerts disagrees with rule_alert_count"
+    elif corruption == "stale_total":
+        summary["total_amount"] = 999.0
+        error = "risk_summary.total_amount disagrees"
+    else:
+        summary["flagged_transactions"] = 0
+        error = "risk_summary.flagged_transactions disagrees"
+
+    with pytest.raises(ValueError, match=error):
+        database.load_warehouse(transactions, vendors, employees, alerts, summary)
+
+    with sqlite3.connect(live_path) as connection:
+        assert connection.execute("SELECT version FROM previous_build").fetchone() == (1,)
+    assert not list(tmp_path.glob(".auditlens-build-*.db"))
+
+
 @pytest.mark.skipif(
     not DB_PATH.exists() or not SCORED_TRANSACTIONS.exists(),
     reason="Run the pipeline first to check its persisted warehouse.",

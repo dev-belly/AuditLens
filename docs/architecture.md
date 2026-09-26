@@ -158,6 +158,9 @@ Audit analytics is delivered to a team, not to one analyst. A single-file SQLite
 database with documented tables and 15 named queries is what lets an engagement
 manager answer their own question without waiting for the data scientist. The
 dashboard reads from it by preference, so the app and the SQL path cannot diverge.
+The database is staged before replacement: every voucher's alert count must match
+its alert rows, and the headline population, amount and risk-band counts must
+reconcile with the transaction table. A failed check leaves the prior file intact.
 
 ### Data cleaning flags rather than fixes
 
@@ -224,10 +227,9 @@ up in production, so it is handled in one place.
   check could only prove the README agreed with itself, and let four new tests pass while
   the documented counts went stale.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
-  against the built warehouse and assert each returns rows. `run_sql_file` deliberately
-  surfaces a failure rather than raising — it logs and returns an empty frame — so without
-  these tests a query naming a column that no longer exists would leave the library
-  quietly short and the pipeline green. The same file pins the count the documentation
+  against the built warehouse and assert each returns rows. `run_sql_file` raises
+  on a broken query, so a missing column cannot leave the pipeline green. The same
+  file pins the count the documentation
   states, because that count had already drifted once (the SQL header said "Fourteen
   queries" while the file held fifteen).
 - **Artefact stability.** The notebooks are built twice in development and diffed. They
