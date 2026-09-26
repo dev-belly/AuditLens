@@ -263,6 +263,18 @@ up in production, so it is handled in one place.
   against the real collection, per file and in total. The purely textual version of that
   check could only prove the README agreed with itself, and let four new tests pass while
   the documented counts went stale.
+- **Capture tests** (`test_screenshots`). The six dashboard PNGs under
+  `docs/screenshots/` are the only way a reader sees the dashboard without running it,
+  and they were the last documented artefact here that nothing checked. The six pages
+  are named in four places — the `st.Page` titles in `dashboard/app.py`, the
+  `page_header` string each view renders, the capture tool's click labels and expected
+  headings, and the committed files themselves — and all four must agree. A rename in
+  the app or in a view does make `make screenshots` fail, but only after a browser
+  launch and a per-page timeout; these tests answer the same question in milliseconds.
+  The disk check runs in both directions, because the quiet failure is not a missing
+  capture but an *orphan*: the old PNG stays committed, the README keeps describing it,
+  and nothing disagrees with anything. `MIN_CAPTURE_BYTES` also catches a truncated or
+  placeholder file, which would otherwise display happily forever.
 - **Query tests** (`test_sql_queries`) execute all 15 queries in `sql/audit_queries.sql`
   against the built warehouse and assert each returns rows. `run_sql_file` deliberately
   surfaces a failure rather than raising — it logs and returns an empty frame — so without
