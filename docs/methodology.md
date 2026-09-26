@@ -521,6 +521,17 @@ are in the workpaper, compared with 137 under pure risk ranking at the same
 budget. The 60 controls cost some immediate benchmark yield in exchange for a
 way to inspect the remainder. This does not measure live audit performance.
 
+The reviewer fills a *copy* of the CSV, recording `exception`, `no_exception`
+or `inconclusive` and an evidence reference for each completed row. Running
+`python src/review_outcomes.py completed.csv --output review_result.json`
+checks the unchanged source CSV against its selection record and every
+selection field in the completed copy against the source. It then reports
+observed counts separately for rule coverage, risk priority and random controls.
+The result contains hashes and counts, not private reviewer notes or a projected
+exception rate. An incomplete or judgmentally selected set is not a basis for
+an overall population estimate, and the synthetic answer key is never used
+as a review outcome.
+
 ---
 
 ## 8. Limitations

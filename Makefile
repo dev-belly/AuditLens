@@ -21,7 +21,7 @@ install:  ## Install runtime dependencies
 install-dev:  ## Install runtime and development dependencies
 	$(PIP) install -r requirements.txt -r requirements-dev.txt
 
-pipeline:  ## Run the full nine-stage analytics pipeline
+pipeline:  ## Run the full ten-stage analytics pipeline
 	$(PYTHON) src/run_pipeline.py
 
 generate:  ## Regenerate the synthetic ledger only

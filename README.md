@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 444](https://img.shields.io/badge/tests-444%20passing-brightgreen.svg)](#testing)
+[![Tests: 452](https://img.shields.io/badge/tests-452%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **444 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **452 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -415,6 +415,22 @@ python src/run_pipeline.py --review-budget 300 --review-random-share 0.2
 python src/review_plan.py --budget 300 --random-share 0.2 --seed 42
 ```
 
+To record real review results, copy the generated CSV and fill `review_outcome`
+with `exception`, `no_exception`, or `inconclusive`. Give every recorded outcome
+an `evidence_reference`; leave unanswered rows blank. Keep the original
+selection CSV and JSON record as issued, then run:
+
+```bash
+cp outputs/reports/review_plan.csv my_review.csv
+# Edit only review_outcome, evidence_reference and reviewer_notes in my_review.csv.
+python src/review_outcomes.py my_review.csv --output my_review_summary.json
+```
+
+The command checks the original checksum and rejects changes to voucher IDs,
+selection routes, amounts, probabilities or any other selection field. Its JSON
+contains outcome **counts by route** and file hashes, without reviewer notes or
+a population fraud/exception estimate. It does not use the synthetic answer key.
+
 ---
 
 ## Dashboard
@@ -521,6 +537,7 @@ AuditLens/
 │   ├── database.py              # SQLite warehouse + query runner
 │   ├── reporting.py             # 10 charts, CJK-aware
 │   ├── review_plan.py           # budgeted review queue + random controls
+│   ├── review_outcomes.py       # validate a filled workpaper; count observed outcomes
 │   └── run_pipeline.py          # 10 stages, ~30s
 ├── dashboard/
 │   ├── app.py                   # st.navigation router
@@ -528,7 +545,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 444 tests, incl. cross-process reproducibility
+├── tests/                       # 452 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -542,7 +559,7 @@ AuditLens/
 │   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 444 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 452 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -713,7 +730,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 444 tests
+python -m pytest tests/ -q     # 452 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -721,7 +738,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-444 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
+452 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
@@ -742,6 +759,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 | `test_readme_claims.py` | 27 | Every headline figure, the review-plan figures, all nine rules' flagged/precision/recall, the Benford table and every MAD quoted in the prose, the risk-band counts and values, the component weights, and the structural counts the prose quotes — checked against `outputs/reports/` and against the code |
 | `test_warehouse_contract.py` | 10 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails |
 | `test_review_plan.py` | 13 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, workpaper checksum and separate synthetic benchmark |
+| `test_review_outcomes.py` | 8 | A completed workpaper can edit review fields only; every finding needs evidence, and results remain route-specific counts without synthetic labels or population inference |
 
 Six of these are regression guards for bugs that were actually shipped during
 development — the reproducibility defect, the inert Benford flag, the string-encoded
