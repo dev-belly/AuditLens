@@ -41,14 +41,17 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.database import GROUND_TRUTH_COLUMNS, GROUND_TRUTH_LABEL, query
+from src.database import (
+    GROUND_TRUTH_COLUMNS as GROUND_TRUTH_COLUMNS,
+    GROUND_TRUTH_LABEL as GROUND_TRUTH_LABEL,
+    query,
+)
 from src.utils import (
     AUDIT_SUMMARY_REPORT,
     BENFORD_RESULTS_JSON,
     DATA_QUALITY_REPORT,
     DB_PATH,
     MODEL_METRICS_JSON,
-    RISK_COLORS,
     RISK_LEVEL_ORDER,
     RULE_EVALUATION_CSV,
     SCORED_TRANSACTIONS,

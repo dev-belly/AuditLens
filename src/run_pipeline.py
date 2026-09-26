@@ -41,12 +41,9 @@ if __package__ in (None, ""):  # allows `python src/run_pipeline.py`
 import pandas as pd
 
 from src.utils import (
-    BENFORD_RESULTS_JSON,
     CHART_DIR,
-    DATA_QUALITY_REPORT,
     DB_PATH,
     HIGH_RISK_CSV,
-    MODEL_METRICS_JSON,
     RANDOM_SEED,
     REPORT_DIR,
     REVIEW_PLAN_CSV,

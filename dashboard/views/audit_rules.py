@@ -22,7 +22,6 @@ from dashboard.common import (
     load_rule_evaluation,
     load_transactions,
     money,
-    money_exact,
     percent,
     sidebar_filters,
 )
@@ -34,7 +33,6 @@ from dashboard.components import (
     reason_list,
     risk_badge,
     section,
-    transaction_table,
 )
 from src.audit_rules import RULE_DEFINITIONS, RULE_WEIGHTS
 from src.utils import (

@@ -17,7 +17,6 @@ import streamlit as st
 
 from dashboard.common import (
     GROUND_TRUTH_LABEL,
-    RISK_BAND_COLORS,
     THEME,
     count,
     load_metrics,
@@ -25,7 +24,6 @@ from dashboard.common import (
     percent,
 )
 from dashboard.components import (
-    bar_chart,
     kpi_row,
     note,
     page_header,
@@ -236,7 +234,7 @@ def render() -> None:
     section("Why the operating point is a resourcing decision, not a tuning knob")
 
     st.markdown(
-        f"""
+        """
 An audit team does not get to choose recall in the abstract. It chooses how many
 vouchers it can work, and recall follows. Read the chart above from left to right:
 
@@ -249,7 +247,7 @@ vouchers it can work, and recall follows. Read the chart above from left to righ
             f"| {_budget_comment(float(key.replace('top_', '').replace('%', '')) / 100)} |"
             for key in precision_at_k
         )
-        + f"""
+        + """
 
 A lower threshold lifts recall and buries the team in false positives; a higher one
 cleans the list and quietly drops real findings. **Recall matters more than

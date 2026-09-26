@@ -21,12 +21,9 @@ from dashboard.common import (
     THEME,
     count,
     load_benford,
-    load_transactions,
     money,
-    percent,
 )
 from dashboard.components import (
-    bar_chart,
     kpi_row,
     note,
     page_header,

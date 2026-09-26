@@ -8,7 +8,7 @@ PYTHON ?= python
 PIP ?= $(PYTHON) -m pip
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-dev pipeline generate clean test test-fast coverage \
+.PHONY: help install install-dev pipeline generate clean test test-fast lint coverage \
         dashboard sql verify screenshots notebooks
 
 help:  ## Show this help
@@ -52,13 +52,16 @@ test:  ## Run the full test suite
 test-fast:  ## Run everything except the dashboard render tests
 	$(PYTHON) -m pytest tests/ -q --ignore=tests/test_dashboard.py
 
+lint:  ## Check imports and Python correctness with ruff
+	$(PYTHON) -m ruff check src dashboard tests tools
+
 notebooks:  ## Re-execute the notebooks and embed their outputs
 	$(PYTHON) tools/build_notebooks.py
 
 coverage:  ## Run the tests with a coverage report
 	$(PYTHON) -m pytest tests/ --cov=src --cov=dashboard --cov-report=term-missing
 
-verify:  ## Run the pipeline from scratch, then the tests
+verify: lint  ## Lint, run the pipeline from scratch, then the tests
 	$(MAKE) pipeline
 	$(MAKE) test
 

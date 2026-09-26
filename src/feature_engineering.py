@@ -35,7 +35,6 @@ import pandas as pd
 
 from src.utils import (
     APPROVAL_THRESHOLD_CNY,
-    NEW_VENDOR_DAYS,
     RAPID_PAYMENT_HOURS,
     SPLIT_THRESHOLD_HIGH_RATIO,
     SPLIT_THRESHOLD_LOW_RATIO,

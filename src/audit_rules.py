@@ -26,7 +26,7 @@ Usage::
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -37,8 +37,6 @@ import numpy as np
 import pandas as pd
 
 from src.utils import (
-    ACCOUNTS,
-    ANOMALY_TYPE_LABELS,
     APPROVAL_THRESHOLD_CNY,
     BUSINESS_PROCESSES,
     MATERIALITY_THRESHOLD_CNY,
@@ -625,7 +623,7 @@ class AuditRuleEngine:
             triggered,
             "Rapid payment: settled "
             + delay.round(1).astype("string")
-            + f" hours after the invoice arrived (normal supplier terms are 30-60 days)",
+            + " hours after the invoice arrived (normal supplier terms are 30-60 days)",
         )
         return RuleResult(self._definition("rapid_payment"), score, reason)
 

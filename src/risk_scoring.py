@@ -66,11 +66,9 @@ from src.utils import (
     APPROVAL_THRESHOLD_CNY,
     MATERIALITY_THRESHOLD_CNY,
     NEW_VENDOR_DAYS,
-    RISK_BANDS,
     RISK_LEVEL_ORDER,
     RISK_WEIGHTS,
     SCORED_TRANSACTIONS,
-    TRANSACTIONS_FEATURES,
     VENDOR_RISK_TABLE,
     Timer,
     ensure_directories,
@@ -78,7 +76,6 @@ from src.utils import (
     load_dataframe,
     risk_level_from_score,
     save_dataframe,
-    save_json,
 )
 
 LOGGER = get_logger(__name__)

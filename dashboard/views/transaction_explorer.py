@@ -13,7 +13,6 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from dashboard.common import (
-    RISK_BAND_COLORS,
     THEME,
     apply_filters,
     count,

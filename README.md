@@ -141,16 +141,28 @@ project was developed and how it is debugged.
 
 ---
 
+## Tech stack
+
+| Layer | Tools used here |
+|---|---|
+| Audit analytics | Python 3.11+, pandas, NumPy, SciPy, scikit-learn (Isolation Forest) |
+| Storage and review | SQLite + SQLAlchemy warehouse, CSV workpaper with SHA-256 selection record |
+| Reporting | Streamlit, Plotly, Matplotlib, Parquet exports |
+| Verification | pytest, local ruff lint, deterministic pipeline and report checks in GitHub Actions |
+
+---
+
 ## Quickstart
 
 ```bash
 git clone <this-repo> && cd AuditLens
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 
-make pipeline      # generate → clean → feature → rules → model → benford → score → sql → report
+make pipeline      # generate → clean → feature → rules → model → benford → score → sql → review → report
 make dashboard     # streamlit run dashboard/app.py
 make test          # full suite
+make lint          # Python static checks
 ```
 
 Or with the CLI directly:
@@ -771,7 +783,7 @@ seven methodology entries while the document held eight, and nothing compared th
 ### What CI verifies
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push, on Python
-3.11 and 3.12, and checks three things the README otherwise only asserts:
+3.11 and 3.12, and checks the following claims:
 
 1. **The pipeline runs** from a clean checkout, on a different operating system from the
    one it was developed on.

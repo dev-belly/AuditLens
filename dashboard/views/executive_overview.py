@@ -19,7 +19,6 @@ from dashboard.common import (
     count,
     load_alerts,
     load_benford,
-    load_metrics,
     load_quality,
     load_summary,
     load_transactions,
@@ -53,12 +52,10 @@ def render() -> None:
     frame = load_transactions()
     summary = load_summary()
     quality = load_quality()
-    metrics = load_metrics()
     benford = load_benford()
 
     population = summary.get("population", {})
     triage = summary.get("triage", {})
-    rules = summary.get("rules", {})
     ml = summary.get("machine_learning", {})
 
     total = int(population.get("total_transactions", len(frame)))

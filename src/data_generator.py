@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -44,8 +44,6 @@ import pandas as pd
 
 from src.utils import (
     ACCOUNTS,
-    ANOMALY_TYPES,
-    APPROVAL_THRESHOLD_CNY,
     BUSINESS_PROCESSES,
     DEPARTMENTS,
     DOCUMENT_TYPES,
@@ -56,8 +54,6 @@ from src.utils import (
     PAYMENT_METHODS,
     PUBLIC_HOLIDAYS,
     RANDOM_SEED,
-    RARE_ACCOUNTS,
-    SUSPICIOUS_KEYWORDS,
     TRANSACTIONS_RAW,
     VENDOR_CATEGORIES,
     VENDOR_PROCESSES,
@@ -67,7 +63,7 @@ from src.utils import (
     get_logger,
 )
 
-from src.anomaly_injection import ANOMALY_MIX, inject_anomalies
+from src.anomaly_injection import inject_anomalies
 
 LOGGER = get_logger(__name__)
 

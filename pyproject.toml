@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0,<10.0", "pytest-cov>=5.0,<8.0"]
+dev = ["pytest>=8.0,<10.0", "pytest-cov>=5.0,<8.0", "ruff==0.16.5"]
 
 [tool.setuptools]
 packages = ["src", "dashboard", "dashboard.views"]
@@ -59,3 +59,20 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# These entry points adjust sys.path or configure Streamlit before importing
+# the rest of the application, so their delayed imports are intentional.
+"dashboard/app.py" = ["E402"]
+"dashboard/common.py" = ["E402"]
+"tests/conftest.py" = ["E402"]
+"tests/test_dashboard.py" = ["E402"]
+"tests/test_reporting.py" = ["E402"]
+"tests/test_utils.py" = ["E402"]
+"tools/build_notebooks.py" = ["E402"]
