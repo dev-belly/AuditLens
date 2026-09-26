@@ -303,9 +303,16 @@ def _populate_warehouse(
         pd.DataFrame([flat_summary]).to_sql("risk_summary", engine, if_exists="replace", index=False)
         counts["risk_summary"] = 1
 
+    _validate_warehouse(engine)
+
     # Indexes make the analyst queries usable on a laptop.
     with engine.begin() as connection:
         for statement in (
+            "CREATE UNIQUE INDEX uq_tx_id ON transactions(transaction_id)",
+            "CREATE UNIQUE INDEX uq_vendor_id ON vendors(vendor_id)",
+            "CREATE UNIQUE INDEX uq_employee_id ON employees(employee_id)",
+            "CREATE UNIQUE INDEX uq_alert_id ON audit_alerts(alert_id)",
+            "CREATE UNIQUE INDEX uq_alert_voucher_rule ON audit_alerts(transaction_id, rule_key)",
             "CREATE INDEX IF NOT EXISTS idx_tx_vendor ON transactions(vendor_id)",
             "CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_code)",
             "CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(transaction_date)",
@@ -317,6 +324,37 @@ def _populate_warehouse(
             connection.execute(text(statement))
 
     return counts
+
+
+def _validate_warehouse(engine: Engine) -> None:
+    """Reject ambiguous keys and alerts with no underlying voucher.
+
+    All checks run against the staged database. A failed build therefore leaves
+    the previous dashboard database in place instead of publishing bad totals.
+    """
+    with engine.connect() as connection:
+        for table, key in TABLE_SCHEMA.items():
+            if connection.execute(
+                text(f"SELECT 1 FROM {table} WHERE {key} IS NULL LIMIT 1")
+            ).first():
+                raise ValueError(f"{table}.{key} contains a NULL key")
+            if connection.execute(
+                text(f"SELECT 1 FROM {table} GROUP BY {key} HAVING COUNT(*) > 1 LIMIT 1")
+            ).first():
+                raise ValueError(f"{table}.{key} contains duplicate keys")
+
+        if connection.execute(text(
+            "SELECT 1 FROM audit_alerts GROUP BY transaction_id, rule_key "
+            "HAVING COUNT(*) > 1 LIMIT 1"
+        )).first():
+            raise ValueError("audit_alerts contains duplicate voucher/rule pairs")
+        if connection.execute(text(
+            "SELECT 1 FROM audit_alerts AS a LEFT JOIN transactions AS t "
+            "ON a.transaction_id = t.transaction_id "
+            "WHERE a.transaction_id IS NULL OR a.rule_key IS NULL "
+            "OR t.transaction_id IS NULL LIMIT 1"
+        )).first():
+            raise ValueError("audit_alerts contains an incomplete or orphaned alert")
 
 
 # --------------------------------------------------------------------------- #

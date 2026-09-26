@@ -76,6 +76,42 @@ def test_failed_rebuild_preserves_the_previous_warehouse(tmp_path, monkeypatch) 
     assert not list(tmp_path.glob(".auditlens-build-*.db"))
 
 
+def test_invalid_ledger_keys_and_orphaned_alerts_never_replace_warehouse(
+    tmp_path, monkeypatch
+) -> None:
+    """Bad source joins must not publish a misleading audit population."""
+    live_path = tmp_path / "auditlens.db"
+    with sqlite3.connect(live_path) as connection:
+        connection.execute("CREATE TABLE previous_build (version INTEGER)")
+        connection.execute("INSERT INTO previous_build VALUES (1)")
+    monkeypatch.setattr(database, "DB_PATH", live_path)
+
+    transactions = pd.DataFrame({
+        "transaction_id": ["TX1", "TX1"],
+        "vendor_id": ["V1", "V1"],
+        "account_code": ["1001", "1001"],
+        "transaction_date": ["2025-01-01", "2025-01-02"],
+        "risk_level": ["Low", "Low"],
+        "audit_risk_score": [1.0, 2.0],
+    })
+    vendors = pd.DataFrame({"vendor_id": ["V1"]})
+    employees = pd.DataFrame({"employee_id": ["E1"]})
+    alerts = pd.DataFrame({
+        "transaction_id": ["MISSING"], "rule_key": ["weekend"],
+    })
+
+    with pytest.raises(ValueError, match="transactions.transaction_id contains duplicate"):
+        database.load_warehouse(transactions, vendors, employees, alerts, summary={})
+
+    transactions.loc[1, "transaction_id"] = "TX2"
+    with pytest.raises(ValueError, match="orphaned alert"):
+        database.load_warehouse(transactions, vendors, employees, alerts, summary={})
+
+    with sqlite3.connect(live_path) as connection:
+        assert connection.execute("SELECT version FROM previous_build").fetchone() == (1,)
+    assert not list(tmp_path.glob(".auditlens-build-*.db"))
+
+
 @pytest.mark.skipif(
     not DB_PATH.exists() or not SCORED_TRANSACTIONS.exists(),
     reason="Run the pipeline first to check its persisted warehouse.",
