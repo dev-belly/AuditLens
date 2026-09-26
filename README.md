@@ -148,7 +148,7 @@ project was developed and how it is debugged.
 | Audit analytics | Python 3.11+, pandas, NumPy, SciPy, scikit-learn (Isolation Forest) |
 | Storage and review | SQLite + SQLAlchemy warehouse, CSV workpaper with SHA-256 selection record |
 | Reporting | Streamlit, Plotly, Matplotlib, Parquet exports |
-| Verification | pytest, local ruff lint, deterministic pipeline and report checks in GitHub Actions |
+| Verification | pytest, ruff lint, deterministic pipeline and report checks in GitHub Actions |
 
 ---
 
@@ -796,6 +796,8 @@ seven methodology entries while the document held eight, and nothing compared th
 4. **The notebooks still run.** CI rebuilds them against the current code. The committed
    outputs would keep rendering on GitHub even if the code underneath had drifted, so
    nothing else would catch a notebook that no longer executes.
+5. **Python static checks pass.** Ruff catches unused imports, undefined names,
+   syntax errors and selected correctness issues before the pipeline runs.
 
 It also writes the run's headline figures to the job summary, so a drift in any of them
 is visible without reading the log.
