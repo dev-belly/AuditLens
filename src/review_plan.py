@@ -91,8 +91,16 @@ def _validate_inputs(transactions: pd.DataFrame, alerts: pd.DataFrame) -> None:
     pairs = alerts[["transaction_id", "rule_key"]]
     if pairs.isna().any().any() or pairs.duplicated().any():
         raise ValueError("alerts need unique, complete voucher/rule pairs")
+    if pairs.astype(str).apply(lambda column: column.str.strip().eq("")).any().any():
+        raise ValueError("alerts need nonblank voucher IDs and rule keys")
     if not pairs["transaction_id"].isin(ids).all():
         raise ValueError("alerts contain a voucher outside the review population")
+    if "rule_label" in alerts:
+        labels = alerts[["rule_key", "rule_label"]]
+        if labels["rule_label"].isna().any() or labels["rule_label"].astype(str).str.strip().eq("").any():
+            raise ValueError("rule labels must be nonblank")
+        if labels.groupby("rule_key")["rule_label"].nunique().gt(1).any():
+            raise ValueError("each rule key must have one consistent label")
     counts = pairs.groupby("transaction_id").size()
     expected = ids.map(counts).fillna(0).to_numpy(dtype=float)
     actual = transactions["rule_alert_count"].to_numpy(dtype=float)
@@ -101,9 +109,12 @@ def _validate_inputs(transactions: pd.DataFrame, alerts: pd.DataFrame) -> None:
 
 
 def selection_fingerprint(transactions: pd.DataFrame, alerts: pd.DataFrame) -> str:
-    """Fingerprint selection inputs; synthetic answer-key columns are excluded."""
+    """Fingerprint every field used by selection or its workpaper reasons."""
     ledger = transactions[list(DECISION_COLUMNS)].sort_values("transaction_id")
-    rules = alerts[["transaction_id", "rule_key"]].sort_values(["transaction_id", "rule_key"])
+    rule_columns = ["transaction_id", "rule_key"]
+    if "rule_label" in alerts:
+        rule_columns.append("rule_label")
+    rules = alerts[rule_columns].sort_values(["transaction_id", "rule_key"])
     digest = hashlib.sha256()
     for frame in (ledger, rules):
         digest.update(frame.to_csv(index=False, lineterminator="\n", float_format="%.12g").encode())

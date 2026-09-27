@@ -72,6 +72,33 @@ def test_input_order_and_answer_key_cannot_change_the_plan(population) -> None:
     assert not {"anomaly_label", "anomaly_type"} & set(original.queue.columns)
 
 
+def test_rule_labels_used_in_review_reasons_are_bound_to_source_fingerprint(population) -> None:
+    transactions, alerts = population
+    original = build_review_plan(transactions, alerts, ReviewPolicy(5, 0.2, 42))
+    renamed = alerts.copy()
+    renamed.loc[renamed["rule_key"] == "A", "rule_label"] = "Control A"
+    revised = build_review_plan(transactions, renamed, ReviewPolicy(5, 0.2, 42))
+
+    assert original.queue["transaction_id"].tolist() == revised.queue["transaction_id"].tolist()
+    assert original.summary["source_sha256"] != revised.summary["source_sha256"]
+    assert "Control A" in revised.queue.loc[0, "selection_reason"]
+
+
+@pytest.mark.parametrize("corruption", ["blank_rule", "blank_label", "conflicting_label"])
+def test_incomplete_rule_identity_cannot_enter_workpaper(population, corruption) -> None:
+    transactions, alerts = population
+    alerts = alerts.copy()
+    if corruption == "blank_rule":
+        alerts.loc[0, "rule_key"] = "  "
+    elif corruption == "blank_label":
+        alerts.loc[0, "rule_label"] = "  "
+    else:
+        alerts.loc[0, "rule_label"] = "Different rule A"
+
+    with pytest.raises(ValueError):
+        build_review_plan(transactions, alerts, ReviewPolicy(5, 0.2, 42))
+
+
 def test_budget_too_small_reports_the_uncovered_procedure(population) -> None:
     plan = build_review_plan(*population, ReviewPolicy(1, 0, 42))
     assert plan.queue["transaction_id"].tolist() == ["TX2"]

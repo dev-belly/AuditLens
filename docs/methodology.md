@@ -515,7 +515,9 @@ No population exception estimate exists until an auditor determines outcomes
 from source documents. The targeted route has no design-based sampling weight.
 
 `review_plan_summary.json` records the policy, rule coverage, selection-input
-fingerprint and CSV checksum. `review_plan_benchmark.json` is a separate
+fingerprint (including the rule labels printed in selection reasons) and CSV
+checksum. Missing or conflicting rule identities stop workpaper generation.
+`review_plan_benchmark.json` is a separate
 **synthetic-only** diagnostic computed after selection: 104 injected anomalies
 are in the workpaper, compared with 137 under pure risk ranking at the same
 budget. The 60 controls cost some immediate benchmark yield in exchange for a

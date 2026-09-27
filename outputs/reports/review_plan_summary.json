@@ -36,7 +36,7 @@
   "uncovered_rule_keys": [],
   "selected_amount_cny": 264645422.13,
   "selected_high_or_critical": 239,
-  "source_sha256": "3d621d92b4d1a0252b382b3276ccfa604871f397894e0f9de948b700a2666454",
+  "source_sha256": "ba91c694a872ff2bf7181f8cb6cb6e381e81377ee666c89014543b01f3907d79",
   "interpretation": "Targeted cases are judgmental selections. The random probability and weight apply only to the non-targeted frame; no exception rate is inferred before review.",
   "queue_sha256": "fef5ebd585a18f130970f5a6acb4f47b64bf3fa0bfbbfb6efc7cc688f1cc7f9f"
 }
