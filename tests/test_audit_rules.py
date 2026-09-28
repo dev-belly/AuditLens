@@ -314,6 +314,40 @@ class TestSplitTransaction:
 
         assert result.n_flagged == 0
 
+    def test_near_threshold_payment_plus_unrelated_amount_is_not_a_split(self) -> None:
+        near = self._near_threshold(APPROVAL_THRESHOLD_CNY * 0.95)
+        engine = _engine(
+            [
+                {"invoice_id": "INV-NEAR", "debit_amount": near, "amount": near,
+                 "credit_amount": near},
+                {"invoice_id": "INV-SMALL", "debit_amount": 1_000.0, "amount": 1_000.0,
+                 "credit_amount": 1_000.0},
+                {"invoice_id": "INV-LARGE", "debit_amount": 80_000.0,
+                 "amount": 80_000.0, "credit_amount": 80_000.0},
+            ]
+        )
+
+        assert engine.rule_split_transaction().n_flagged == 0
+
+    def test_split_reason_excludes_other_same_day_vouchers_from_total(self) -> None:
+        first = self._near_threshold(APPROVAL_THRESHOLD_CNY * 0.95)
+        second = self._near_threshold(APPROVAL_THRESHOLD_CNY * 0.92)
+        engine = _engine(
+            [
+                {"invoice_id": "INV-S1", "debit_amount": first, "amount": first,
+                 "credit_amount": first},
+                {"invoice_id": "INV-S2", "debit_amount": second, "amount": second,
+                 "credit_amount": second},
+                {"invoice_id": "INV-OTHER", "debit_amount": 80_000.0,
+                 "amount": 80_000.0, "credit_amount": 80_000.0},
+            ]
+        )
+        result = engine.rule_split_transaction()
+
+        assert result.flagged.tolist() == [True, True, False]
+        assert str(first + second) in result.reasons.iloc[0]
+        assert str(first + second + 80_000) not in result.reasons.iloc[0]
+
     def test_payments_on_different_days_are_not_flagged(self) -> None:
         first = self._near_threshold(APPROVAL_THRESHOLD_CNY * 0.95)
         second = self._near_threshold(APPROVAL_THRESHOLD_CNY * 0.92)

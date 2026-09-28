@@ -145,7 +145,7 @@ RULE_DEFINITIONS: tuple[RuleDefinition, ...] = (
         label="Split Transaction",
         description=(
             f"Two or more payments to the same vendor on the same day, each between "
-            f"{SPLIT_THRESHOLD_LOW_RATIO:.0%} and {SPLIT_THRESHOLD_HIGH_RATIO:.0%} of the "
+            f"{SPLIT_THRESHOLD_LOW_RATIO:.0%} and {SPLIT_THRESHOLD_HIGH_RATIO:.1%} of the "
             f"CNY {APPROVAL_THRESHOLD_CNY:,.0f} approval threshold."
         ),
         audit_rationale=(
@@ -414,19 +414,23 @@ class AuditRuleEngine:
         high = self.approval_threshold * SPLIT_THRESHOLD_HIGH_RATIO
 
         eligible = self._amount.between(low, high) & df["vendor_id"].notna()
-        group_keys = [df["vendor_id"], df["transaction_date"]]
-        # Vouchers with no vendor cannot belong to a vendor-day cluster, so the
-        # group size is undefined for them; fall back to a single voucher.
+        # Only near-threshold vouchers belong to the proposed split. Counting
+        # every voucher for the vendor/day lets one near-threshold payment plus
+        # an unrelated small invoice falsely satisfy the two-payment test.
+        eligible_rows = df.loc[eligible]
+        group_keys = [eligible_rows["vendor_id"], eligible_rows["transaction_date"]]
         same_day_count = (
-            df.groupby(group_keys, dropna=True, observed=True)["transaction_id"]
-            .transform("count")
-            .fillna(1.0)
+            eligible_rows.groupby(group_keys, dropna=True, observed=True)["transaction_id"]
+            .transform("size")
+            .reindex(df.index)
+            .fillna(0)
             .astype(int)
         )
         same_day_value = (
-            df.groupby(group_keys, dropna=True, observed=True)["debit_amount"]
+            eligible_rows.groupby(group_keys, dropna=True, observed=True)["debit_amount"]
             .transform("sum")
-            .fillna(self._amount)
+            .reindex(df.index)
+            .fillna(0.0)
         )
 
         triggered = eligible & (same_day_count >= 2)

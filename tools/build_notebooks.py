@@ -249,8 +249,6 @@ def execute(cells: list[tuple[str, str]], name: str) -> list[list[dict[str, Any]
     silently drops later records into a buffer that is no longer being read. Warnings and
     errors still surface, which is what a reader actually needs to see.
     """
-    import json as _json
-
     displayed: list[Any] = []
 
     def _display(*values: Any) -> None:
@@ -265,7 +263,6 @@ def execute(cells: list[tuple[str, str]], name: str) -> list[list[dict[str, Any]
 
     namespace: dict[str, Any] = {
         "__name__": "__main__",
-        "json": _json,
         # `display()` is a builtin in a real kernel; here it just records the value.
         "display": _display,
     }

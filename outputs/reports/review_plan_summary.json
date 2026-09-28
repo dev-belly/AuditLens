@@ -34,9 +34,9 @@
     "weekend_posting"
   ],
   "uncovered_rule_keys": [],
-  "selected_amount_cny": 264645422.13,
+  "selected_amount_cny": 264116893.2,
   "selected_high_or_critical": 239,
-  "source_sha256": "ba91c694a872ff2bf7181f8cb6cb6e381e81377ee666c89014543b01f3907d79",
+  "source_sha256": "17354261db2a984ad10590fbb953fc6a8ebc7ab1c8029ff4c839171441ce3f10",
   "interpretation": "Targeted cases are judgmental selections. The random probability and weight apply only to the non-targeted frame; no exception rate is inferred before review.",
-  "queue_sha256": "fef5ebd585a18f130970f5a6acb4f47b64bf3fa0bfbbfb6efc7cc688f1cc7f9f"
+  "queue_sha256": "d4898dfc31bfc3c03bd0175c8b23181d82433cc1ddcaf4161b7903740e92beec"
 }

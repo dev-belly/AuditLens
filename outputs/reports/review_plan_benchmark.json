@@ -2,8 +2,8 @@
   "scope": "synthetic injected labels only; unavailable on a live audit",
   "budget": 300,
   "injected_anomalies_in_population": 919,
-  "plan_injected_anomalies_found": 104,
-  "risk_only_same_budget_found": 137,
+  "plan_injected_anomalies_found": 107,
+  "risk_only_same_budget_found": 140,
   "by_route": {
     "rule_coverage": {
       "reviewed": 6,
@@ -11,11 +11,11 @@
     },
     "risk_priority": {
       "reviewed": 234,
-      "injected_anomalies_found": 98
+      "injected_anomalies_found": 100
     },
     "random_control": {
       "reviewed": 60,
-      "injected_anomalies_found": 1
+      "injected_anomalies_found": 2
     }
   },
   "interpretation": "The control sample consumes review capacity and may lower benchmark hit yield. It is reserved to assess the non-targeted population after human review, not to maximize this synthetic score."

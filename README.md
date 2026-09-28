@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 456](https://img.shields.io/badge/tests-456%20passing-brightgreen.svg)](#testing)
+[![Tests: 461](https://img.shields.io/badge/tests-461%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -51,14 +51,14 @@ Three design commitments drive everything else:
 | Population | **30,128** clean vouchers, CNY **4,443,451,722** |
 | Raw extract | 30,223 rows → 285 data-quality issues (**0.94%**) |
 | Injected anomalies | **919** (3.05%) across 9 patterns — ground truth, used only for grading |
-| Flagged by rules | **2,208** vouchers (**7.33%**) — the reviewable population |
-| High or Critical risk | **255** vouchers (**0.85%**), carrying **CNY 267.0M** |
+| Flagged by rules | **2,139** vouchers (**7.10%**) — the reviewable population |
+| High or Critical risk | **248** vouchers (**0.82%**), carrying **CNY 266.7M** |
 | Anomalies caught by the nine rules | **902 of 919 (98.2%)** |
 | Anomalies caught by the model and no rule | **2** |
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **456 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **461 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -194,7 +194,7 @@ exactly the evidence an auditor cares about most.
 | Procedure | Trigger | Weight | Flagged | Precision | Recall |
 |---|---|---|---|---|---|
 | Duplicate Payment | same vendor+invoice+amount, or same vendor+amount within 5 days | 0.18 | 108 | **1.000** | 1.000 |
-| Split Transaction | 2+ payments, same vendor, same day, each 90–99.5% of the CNY 50k threshold | 0.16 | 179 | 0.603 | 0.991 |
+| Split Transaction | 2+ near-threshold payments, same vendor and day; unrelated amounts excluded from the cluster | 0.16 | 110 | 0.982 | 0.991 |
 | Self Approval | `created_by == approved_by` | 0.14 | 126 | **1.000** | 1.000 |
 | Unusual Vendor | new / dormant / shared bank account / amount spike, gated at ≥ P90 | 0.12 | 501 | **0.148** | 0.822 |
 | Large Round Amount | multiple of 1,000 **and** ≥ P95 **and** ≥ CNY 100,000 | 0.10 | 505 | **0.214** | 1.000 |
@@ -203,7 +203,7 @@ exactly the evidence an auditor cares about most.
 | Rare Account Usage | account frequency < 1%, escalated for designated rare accounts | 0.08 | 54 | **1.000** | 1.000 |
 | Weekend / Holiday Posting | transaction date on a weekend or PRC public holiday | 0.06 | 765 | **0.165** | 1.000 |
 
-**2,475 alerts across 2,208 distinct vouchers.**
+**2,406 alerts across 2,139 distinct vouchers.**
 
 ### Reading that table honestly
 
@@ -373,12 +373,12 @@ it mechanically. The final allocation follows three arguments:
 
 | Band | Score | Meaning | Vouchers | Value |
 |---|---|---|---|---|
-| Low | 0–30 | no indicator fired; reviewed in aggregate | 28,261 | ¥3.45B |
-| Medium | 30–60 | one indicator, or a moderate model score | 1,612 | ¥723.0M |
-| High | 60–80 | multiple indicators, or one on a material amount | 254 | ¥265.8M |
+| Low | 0–30 | no indicator fired; reviewed in aggregate | 28,332 | ¥3.46B |
+| Medium | 30–60 | one indicator, or a moderate model score | 1,548 | ¥719.7M |
+| High | 60–80 | multiple indicators, or one on a material amount | 247 | ¥265.4M |
 | Critical | 80–100 | several independent indicators on a material amount | 1 | ¥1.25M |
 
-Average score **14.64**; High + Critical = **255 vouchers (0.85%)**, ¥267.0M.
+Average score **14.57**; High + Critical = **248 vouchers (0.82%)**, ¥266.7M.
 
 A well-calibrated triage pushes almost everything into Low. If half the ledger were
 High, the score would not be discriminating — it would just be relabelling.
@@ -393,7 +393,7 @@ strongest evidence reads first.
 features that drove it, because "the model said so" is not an audit explanation.
 `tests/test_risk_scoring.py` asserts every High or Critical voucher has at least one
 reason — a score with no explanation is treated as a bug, and currently zero of the
-255 High/Critical vouchers violate it.
+248 High/Critical vouchers violate it.
 
 ---
 
@@ -415,8 +415,8 @@ targeted cases do not support a population-wide exception estimate. A reviewer
 must examine documents before estimating anything.
 
 The separate [synthetic benchmark](outputs/reports/review_plan_benchmark.json)
-shows the cost of reserving controls: the plan contains **104 of the 919 injected
-anomalies** in 300 cases; pure risk ranking would contain **137** at the same
+shows the cost of reserving controls: the plan contains **107 of the 919 injected
+anomalies** in 300 cases; pure risk ranking would contain **140** at the same
 budget. This is a review-design trade-off, not an improved detection claim. On a
 live engagement the answer key would not exist, and this benchmark file is not
 produced.
@@ -471,7 +471,7 @@ emits a ground-truth column.
 <table>
 <tr>
 <td width="50%"><img src="docs/screenshots/01_executive_overview.png" alt="Executive Overview page"><br>
-<sub><b>Executive Overview</b> — 30,128 vouchers, 7.33% flagged, 255 High/Critical carrying ¥267.0M, and the risk-band distribution.</sub></td>
+<sub><b>Executive Overview</b> — 30,128 vouchers, 7.10% flagged, 248 High/Critical carrying ¥266.7M, and the risk-band distribution.</sub></td>
 <td width="50%"><img src="docs/screenshots/02_transaction_explorer.png" alt="Transaction Explorer page"><br>
 <sub><b>Transaction Explorer</b> — filter and sort the population, then open any voucher for its reasons, control timeline and peer comparison.</sub></td>
 </tr>
@@ -498,7 +498,7 @@ capturing. `make screenshots` regenerates them.
 ## SQL
 
 `data/auditlens.db` (SQLite) holds `transactions` (30,128), `vendors` (409),
-`employees` (140) and `audit_alerts` (2,475).
+`employees` (140) and `audit_alerts` (2,406).
 
 Two employee figures appear in the reports and they are **not** meant to agree. The
 roster is 140; only **104** of those people ever raise a voucher, because the rest hold
@@ -557,7 +557,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 456 tests, incl. cross-process reproducibility
+├── tests/                       # 461 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -571,7 +571,7 @@ AuditLens/
 │   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 456 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 461 tests + a reproducibility check, on 3.11 and 3.12
 └── Makefile
 ```
 
@@ -593,15 +593,15 @@ Things a reviewer would actually take to an engagement:
    value of a model layered on top of a rule set.
 2. **Two of nine procedures carry almost all the noise.** Weekend Posting (765 alerts,
    precision 0.165) and Unusual Vendor (501 alerts, 0.148) together produce 1,266 of
-   2,475 alerts — 51% of the workload — for a small share of the detections. A real
+   2,406 alerts — 53% of the workload — for a small share of the detections. A real
    engagement should keep them as *scoping* procedures and stop treating their output
    as individual findings. That single change halves the review list.
-3. **The triage collapses 30,128 vouchers into 255.** High/Critical is 0.85% of the
-   population but 6.0% of its value (¥267.0M of ¥4.44B) — the score is finding risk
+3. **The triage collapses 30,128 vouchers into 248.** High/Critical is 0.82% of the
+   population but 6.0% of its value (¥266.7M of ¥4.44B) — the score is finding risk
    where the money is, not just where the oddities are.
 4. **Split-transaction detection is the highest-value rule that is not trivially
-   perfect.** Precision 0.603 at recall 0.991: 71 false positives to catch 108 real
-   splits. That is a good trade for a control that exists specifically to defeat an
+   perfect.** Precision 0.982 at recall 0.991: 2 false positives to catch 108 real
+   splits in this rule-derived synthetic benchmark. That is a good trade for a control that exists specifically to defeat an
    approval threshold, and it is the rule most worth investing engineering time in.
 5. **Data quality is a finding, not a chore.** 285 issues on 30,223 rows (0.94%),
    including 45 unbalanced vouchers and 36 payments to vendors that do not exist in
@@ -742,7 +742,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 456 tests
+python -m pytest tests/ -q     # 461 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -750,21 +750,21 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-456 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
+461 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
 | `test_data_cleaning.py` | 57 | Each repair path: missing values, duplicates, invalid dates and amounts, debit/credit balance, orphan vendor IDs, inconsistent account names, currency normalisation |
-| `test_audit_rules.py` | 36 | One class per procedure, plus the text-encoded-label fallback in `evaluate()` |
+| `test_audit_rules.py` | 38 | One class per procedure, plus mixed-size split-cluster regressions and the text-encoded-label fallback in `evaluate()` |
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
-| `test_dashboard.py` | 63 | Renders all six pages in-process via `AppTest`, checks the workpaper handoff, and pins the no-ground-truth guard at both the rendered-output and grid-builder level |
+| `test_dashboard.py` | 65 | Renders all six pages in-process via `AppTest`, checks the workpaper handoff, control catalogue and distinct-voucher share, and pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_feature_engineering.py` | 9 | The model's feature matrix: no ground-truth column can reach it, the matrix and its descriptions cover exactly the same set, and the committed `model_metrics.json` records the features the code actually built |
 | `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
 | `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
 | `test_reporting.py` | 7 | The flag-vs-anomaly distinction in `detector_overlap` and stable ordering for equal risk scores in the review extract |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
-| `test_notebooks.py` | 29 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
+| `test_notebooks.py` | 30 | Every cell that prints or plots carries output, every notebook embeds a chart, and no random Styler id or logged timestamp survives into a committed notebook |
 | `test_sql_queries.py` | 20 | Splits the `-- name:` query library, and executes all 15 queries against the warehouse — the guard against `run_sql_file` turning a broken query into an empty frame |
 | `test_documentation.py` | 19 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total. Also pins the project-structure tree against the modules on disk, every relative link and embedded image against the filesystem, and the Makefile's `.PHONY` declaration against the targets it actually defines, against `make help`'s output, and against every `make` command the docs name |
 | `test_screenshots.py` | 11 | The six dashboard pages are named in four places — the `st.Page` titles, the `page_header` strings the views render, the capture tool's click labels and expected headings, and the committed PNGs — and all four must agree. Checked in both directions, so a rename cannot leave an orphan capture that the README still displays |

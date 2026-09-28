@@ -36,6 +36,7 @@ from tools.build_notebooks import (  # noqa: E402  (needs sys.path above)
     _stable_table_ids,
     execute,
 )
+from tools.notebook_content import PRELUDE  # noqa: E402
 
 #: ``T_`` followed by five hex digits is what pandas' random uuid produces. A stable id
 #: is all digits, so this pattern matches only the random ones.
@@ -181,6 +182,13 @@ class TestDisplayShim:
             "probe.ipynb",
         )
         assert len(outputs[1]) == 2
+
+    def test_prelude_imports_its_own_json_dependency(self) -> None:
+        outputs = execute(
+            [("code", PRELUDE), ("code", 'print(json.loads("{\\\"ready\\\": true}")["ready"])')],
+            "standalone.ipynb",
+        )
+        assert "True" in "".join(outputs[1][0]["text"])
 
 
 class TestCommittedNotebooks:

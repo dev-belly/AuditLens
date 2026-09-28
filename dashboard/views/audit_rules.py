@@ -34,7 +34,7 @@ from dashboard.components import (
     risk_badge,
     section,
 )
-from src.audit_rules import RULE_DEFINITIONS, RULE_WEIGHTS
+from src.audit_rules import DUPLICATE_WINDOW_DAYS, RULE_DEFINITIONS, RULE_WEIGHTS
 from src.utils import (
     APPROVAL_THRESHOLD_CNY,
     MATERIALITY_THRESHOLD_CNY,
@@ -48,10 +48,13 @@ from src.utils import (
 #: rather than aspirational. Every value here is imported from the same constant
 #: the engine uses - none of it is retyped.
 RULE_THRESHOLDS: dict[str, str] = {
-    "duplicate_payment": "Same vendor + same amount + same invoice ID, within a 7-day window",
+    "duplicate_payment": (
+        "Same vendor, amount and invoice at any date; or same vendor and amount "
+        f"within {DUPLICATE_WINDOW_DAYS} days across invoices"
+    ),
     "split_transaction": (
         f"2+ payments, same vendor, same day, each between "
-        f"{SPLIT_THRESHOLD_LOW_RATIO:.0%} and {SPLIT_THRESHOLD_HIGH_RATIO:.0%} of "
+        f"{SPLIT_THRESHOLD_LOW_RATIO:.0%} and {SPLIT_THRESHOLD_HIGH_RATIO:.1%} of "
         f"CNY {APPROVAL_THRESHOLD_CNY:,.0f}"
     ),
     "self_approval": "created_by == approved_by",
@@ -64,7 +67,7 @@ RULE_THRESHOLDS: dict[str, str] = {
         f"Round to 1,000 / 10,000 / 100,000 AND above the 95th percentile AND "
         f"at least CNY {MATERIALITY_THRESHOLD_CNY:,.0f}"
     ),
-    "rapid_payment": f"Payment within {RAPID_PAYMENT_HOURS:.0f} hours of approval",
+    "rapid_payment": f"Payment within {RAPID_PAYMENT_HOURS:.0f} hours of invoice arrival",
     "suspicious_description": "Description contains fraud-indicative keywords or is implausibly short",
     "rare_account_usage": "Account used in fewer than 0.5% of vouchers or below its historical share",
     "weekend_posting": "Transaction or posting date falls on a weekend or a PRC public holiday",
@@ -173,7 +176,7 @@ def _performance(evaluation: pd.DataFrame, total: int) -> None:
         "Recall of 1.000 on several rules is a consequence of the benchmark, not "
         "of the rule being clever. The injected anomalies follow exactly the pattern "
         "the rule tests for, so a rule tuned on that pattern will find all of them. "
-        "Real irregularities are irregular: they do not respect a 7-day duplicate "
+        "Real irregularities are irregular: they do not respect a 5-day repeat-amount "
         "window or a 6-hour payment threshold."
     )
 
@@ -296,7 +299,7 @@ def render() -> None:
             {"label": "Alerts raised", "value": count(len(alerts)),
              "delta": f"{count(alerts['transaction_id'].nunique())} distinct vouchers"
                       if not alerts.empty else "-"},
-            {"label": "Share of ledger", "value": percent(len(alerts) / max(total, 1)),
+            {"label": "Share of ledger", "value": percent(alerts["transaction_id"].nunique() / max(total, 1)),
              "delta": "Population needing triage", "accent": THEME["accent"]},
             {"label": "Mean alerts per flagged voucher",
              "value": f"{len(alerts) / max(1, alerts['transaction_id'].nunique()):.2f}"

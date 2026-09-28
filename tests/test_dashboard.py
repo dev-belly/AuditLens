@@ -274,6 +274,26 @@ class TestPageContent:
         assert "Threshold:" in text
         assert "Why it matters:" in text
 
+    def test_audit_rules_catalogue_matches_actual_time_and_amount_boundaries(self) -> None:
+        from dashboard.views.audit_rules import RULE_THRESHOLDS
+        from src.audit_rules import RULE_DEFINITIONS
+
+        assert "within 5 days" in RULE_THRESHOLDS["duplicate_payment"]
+        assert "99.5%" in RULE_THRESHOLDS["split_transaction"]
+        assert "invoice arrival" in RULE_THRESHOLDS["rapid_payment"]
+        split = next(rule for rule in RULE_DEFINITIONS if rule.key == "split_transaction")
+        assert "99.5%" in split.description
+
+    def test_audit_rules_share_counts_distinct_vouchers(
+        self, rendered_pages: dict[str, AppTest]
+    ) -> None:
+        from dashboard.common import load_alerts, load_transactions, percent
+
+        alerts = load_alerts()
+        expected = percent(alerts["transaction_id"].nunique() / len(load_transactions()))
+        text = _rendered_text(rendered_pages["Audit Rules"])
+        assert expected in text
+
     def test_audit_rules_warns_that_high_recall_is_a_benchmark_artefact(
         self, rendered_pages: dict[str, AppTest]
     ) -> None:

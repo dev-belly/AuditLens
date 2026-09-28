@@ -1,6 +1,6 @@
 ﻿rule_key,rule_label,flagged,true_positives,false_positives,precision,recall,f1
 duplicate_payment,Duplicate Payment,108,108,0,1.0,1.0,1.0
-split_transaction,Split Transaction,179,108,71,0.6034,0.9908,0.75
+split_transaction,Split Transaction,110,108,2,0.9818,0.9908,0.9863
 self_approval,Self Approval,126,126,0,1.0,1.0,1.0
 unusual_vendor,Unusual Vendor,501,74,427,0.1477,0.8222,0.2504
 large_round_amount,Large Round Amount,505,108,397,0.2139,1.0,0.3524

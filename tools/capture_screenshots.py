@@ -168,7 +168,9 @@ class DevTools:
 
 async def _page_target(port: int, attempts: int = 40) -> str:
     """Wait for the browser's debug endpoint and return the page target's WS URL."""
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    # The DevTools endpoint is local. A system HTTP proxy can otherwise turn
+    # these loopback requests into 502 responses and make Chrome appear absent.
+    async with httpx.AsyncClient(timeout=5.0, trust_env=False) as client:
         for _ in range(attempts):
             try:
                 response = await client.get(f"http://127.0.0.1:{port}/json/list")
@@ -216,7 +218,7 @@ async def capture(
     failures = 0
     try:
         ws_url = await _page_target(debug_port)
-        async with websockets.connect(ws_url, max_size=None) as ws:
+        async with websockets.connect(ws_url, max_size=None, proxy=None) as ws:
             devtools = DevTools(ws)
             await devtools.send("Page.enable")
             await devtools.send("Runtime.enable")

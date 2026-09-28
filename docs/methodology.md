@@ -109,7 +109,7 @@ Measured performance is against the injected ground truth.
 | Procedure | Threshold | Weight | Flagged | Precision | Recall |
 |---|---|---|---|---|---|
 | Duplicate Payment | same vendor + invoice + amount; or same vendor + amount within 5 days | 0.18 | 108 | 1.000 | 1.000 |
-| Split Transaction | 2+ payments, same vendor, same day, each 90–99.5% of CNY 50,000 | 0.16 | 179 | 0.603 | 0.991 |
+| Split Transaction | 2+ near-threshold payments, same vendor and day; unrelated amounts excluded from the cluster | 0.16 | 110 | 0.982 | 0.991 |
 | Self Approval | `created_by == approved_by` | 0.14 | 126 | 1.000 | 1.000 |
 | Unusual Vendor | new / dormant / shared bank account / amount spike, gated on ≥ P90 | 0.12 | 501 | 0.148 | 0.822 |
 | Large Round Amount | multiple of 1,000 **and** ≥ P95 **and** ≥ CNY 100,000 | 0.10 | 505 | 0.214 | 1.000 |
@@ -118,7 +118,7 @@ Measured performance is against the injected ground truth.
 | Rare Account Usage | account frequency < 1%, escalated for the designated rare accounts | 0.08 | 54 | 1.000 | 1.000 |
 | Weekend / Holiday Posting | transaction date on a weekend or a PRC public holiday | 0.06 | 765 | 0.165 | 1.000 |
 
-**Totals:** 2,475 alerts across 2,208 distinct vouchers — **7.33% of the ledger**.
+**Totals:** 2,406 alerts across 2,139 distinct vouchers — **7.10% of the ledger**.
 That is a reviewable population: large enough that nothing material is likely to be
 missed, small enough that a team can actually work it.
 
@@ -468,13 +468,13 @@ restrained for the same reason.
 
 | Band | Score | Meaning | Vouchers | Value |
 |---|---|---|---|---|
-| Low | 0–30 | No indicator fired; reviewed in aggregate | 28,261 | ¥3.45B |
-| Medium | 30–60 | One indicator, or a moderate model score | 1,612 | ¥723.0M |
-| High | 60–80 | Multiple indicators, or one on a material amount | 254 | ¥265.8M |
+| Low | 0–30 | No indicator fired; reviewed in aggregate | 28,332 | ¥3.46B |
+| Medium | 30–60 | One indicator, or a moderate model score | 1,548 | ¥719.7M |
+| High | 60–80 | Multiple indicators, or one on a material amount | 247 | ¥265.4M |
 | Critical | 80–100 | Several independent indicators on a material amount | 1 | ¥1.25M |
 
-Average score across the population: **14.64**. High and Critical together are
-**255 vouchers (0.85%)**, carrying ¥267.0M.
+Average score across the population: **14.57**. High and Critical together are
+**248 vouchers (0.82%)**, carrying ¥266.7M.
 
 A well-calibrated triage pushes almost everything into Low. If half the ledger were
 High, the score would not be discriminating — it would just be relabelling the
@@ -518,8 +518,8 @@ from source documents. The targeted route has no design-based sampling weight.
 fingerprint (including the rule labels printed in selection reasons) and CSV
 checksum. Missing or conflicting rule identities stop workpaper generation.
 `review_plan_benchmark.json` is a separate
-**synthetic-only** diagnostic computed after selection: 104 injected anomalies
-are in the workpaper, compared with 137 under pure risk ranking at the same
+**synthetic-only** diagnostic computed after selection: 107 injected anomalies
+are in the workpaper, compared with 140 under pure risk ranking at the same
 budget. The 60 controls cost some immediate benchmark yield in exchange for a
 way to inspect the remainder. This does not measure live audit performance.
 
