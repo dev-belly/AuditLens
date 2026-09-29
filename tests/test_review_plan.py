@@ -7,6 +7,7 @@ import hashlib
 import pandas as pd
 import pytest
 
+from src.review_outcomes import summarize_completed_review
 from src.review_plan import ReviewPolicy, benchmark_review_plan, build_review_plan, write_review_plan
 
 
@@ -133,6 +134,33 @@ def test_written_workpaper_checksum_matches_the_actual_csv(population, tmp_path)
     assert pd.read_csv(csv_path)["transaction_id"].is_unique
     assert '"queue_sha256"' in json_path.read_text()
     assert "anomaly_label" not in csv_path.read_text()
+
+
+def test_workpaper_escapes_spreadsheet_formulas_without_changing_selection(population, tmp_path) -> None:
+    transactions, alerts = (frame.copy() for frame in population)
+    dangerous_id = '=HYPERLINK("https://example.test")'
+    transactions.loc[transactions["transaction_id"] == "TX2", "transaction_id"] = dangerous_id
+    alerts.loc[alerts["transaction_id"] == "TX2", "transaction_id"] = dangerous_id
+    transactions.loc[transactions["transaction_id"] == dangerous_id, "risk_level"] = "@SUM(1,2)"
+    transactions.loc[transactions["transaction_id"] == dangerous_id, "vendor_id"] = "  +SUM(1,2)"
+    transactions.loc[transactions["transaction_id"] == dangerous_id, "risk_reason_text"] = "-1+2"
+    plan = build_review_plan(transactions, alerts, ReviewPolicy(5, 0.2, 42))
+    original_ids = plan.queue["transaction_id"].tolist()
+    csv_path, json_path = tmp_path / "selection.csv", tmp_path / "selection.json"
+    write_review_plan(plan, csv_path, json_path)
+    exported = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
+    selected = exported.loc[exported["transaction_id"] == "'" + dangerous_id].iloc[0]
+    assert selected["vendor_id"] == "'  +SUM(1,2)"
+    assert selected["risk_reason_text"] == "'-1+2"
+    assert selected["risk_level"] == "'@SUM(1,2)"
+    assert selected["selection_reason"].startswith("Covers procedures: ")
+    assert plan.queue["transaction_id"].tolist() == original_ids
+    assert plan.queue.loc[plan.queue["transaction_id"] == dangerous_id, "vendor_id"].iloc[0] == (
+        "  +SUM(1,2)"
+    )
+    completed = tmp_path / "completed.csv"
+    exported.to_csv(completed, index=False)
+    assert summarize_completed_review(completed, csv_path, json_path)["selected_count"] == 5
 
 
 def test_synthetic_benchmark_is_computed_only_after_the_label_blind_selection(population) -> None:

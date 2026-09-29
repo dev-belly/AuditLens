@@ -240,6 +240,13 @@ def build_review_plan(
     return ReviewPlan(queue=queue, summary=summary)
 
 
+def _spreadsheet_safe(value: Any) -> Any:
+    """Keep text cells from being interpreted as formulas when opened as CSV."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 def write_review_plan(
     plan: ReviewPlan,
     queue_path: Path = REVIEW_PLAN_CSV,
@@ -248,7 +255,8 @@ def write_review_plan(
     """Write the auditor queue and a checksum-bound selection record."""
     queue_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
-    contents = plan.queue.to_csv(index=False, lineterminator="\n", float_format="%.10g")
+    export_queue = plan.queue.map(_spreadsheet_safe)
+    contents = export_queue.to_csv(index=False, lineterminator="\n", float_format="%.10g")
     summary = {**plan.summary, "queue_sha256": hashlib.sha256(contents.encode()).hexdigest()}
     queue_path.write_bytes(contents.encode("utf-8"))
     save_json(summary, summary_path)
