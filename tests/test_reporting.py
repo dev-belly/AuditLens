@@ -46,6 +46,32 @@ def test_high_risk_extract_orders_equal_scores_consistently(
     assert pd.read_csv(output)["transaction_id"].tolist() == ["TX002", "TX001", "TX003"]
 
 
+def test_high_risk_extract_escapes_formula_like_text_without_changing_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "high_risk.csv"
+    monkeypatch.setattr(reporting, "HIGH_RISK_CSV", output)
+    voucher_id = '=HYPERLINK("https://example.test")'
+    vouchers = pd.DataFrame([{
+        "transaction_id": voucher_id,
+        "audit_risk_score": 82.0,
+        "risk_level": "High",
+        "vendor_name": "  +SUM(1,2)",
+        "description": "-1+2",
+        "risk_reason_text": "@SUM(1,2)",
+    }])
+
+    reporting.write_high_risk_extract(vouchers)
+    row = pd.read_csv(output, dtype=str, keep_default_na=False).iloc[0]
+    assert row["transaction_id"] == "'" + voucher_id
+    assert row["vendor_name"] == "'  +SUM(1,2)"
+    assert row["description"] == "'-1+2"
+    assert row["risk_reason_text"] == "'@SUM(1,2)"
+    assert row["audit_risk_score"] == "82.0"
+    assert vouchers.loc[0, "transaction_id"] == voucher_id
+    assert vouchers.loc[0, "vendor_name"] == "  +SUM(1,2)"
+
+
 def _frame(rows: list[dict]) -> pd.DataFrame:
     """Build a minimal scored frame from (rule, model, anomaly) triples."""
     return pd.DataFrame(

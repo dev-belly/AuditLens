@@ -421,6 +421,13 @@ def load_json(path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def spreadsheet_safe_cell(value: Any) -> Any:
+    """Prefix formula-like text in auditor-facing CSV exports."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 def save_dataframe(df: pd.DataFrame, path: Path) -> Path:
     """Persist a dataframe to parquet (or CSV when the suffix is ``.csv``)."""
     path.parent.mkdir(parents=True, exist_ok=True)
