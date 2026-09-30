@@ -55,6 +55,7 @@ from src.utils import (
     load_dataframe,
     load_json,
     save_json,
+    spreadsheet_safe_cell,
 )
 
 LOGGER = get_logger(__name__)
@@ -430,7 +431,7 @@ def write_high_risk_extract(df: pd.DataFrame) -> Path:
     extract = df.loc[df["risk_level"].isin(HIGH_RISK_LEVELS), columns].sort_values(
         ["audit_risk_score", "transaction_id"], ascending=[False, True]
     )
-    extract.to_csv(HIGH_RISK_CSV, index=False, encoding="utf-8-sig")
+    extract.map(spreadsheet_safe_cell).to_csv(HIGH_RISK_CSV, index=False, encoding="utf-8-sig")
     LOGGER.info("Wrote %s (%s vouchers)", HIGH_RISK_CSV.name, len(extract))
     return HIGH_RISK_CSV
 
