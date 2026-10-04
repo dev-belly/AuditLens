@@ -530,7 +530,11 @@ checks the unchanged source CSV against its selection record and every
 selection field in the completed copy against the source. It then reports
 observed counts separately for rule coverage, risk priority and random controls.
 The result contains hashes and counts, not private reviewer notes or a projected
-exception rate. An incomplete or judgmentally selected set is not a basis for
+exception rate. Each input CSV is read once and parsed from the same byte
+snapshot used for its hash. A file saved concurrently after that read cannot
+make the report count outcomes from one version while citing another version's
+digest. This binds the report to the captured bytes; it does not authenticate
+the reviewer or the external evidence reference. An incomplete or judgmentally selected set is not a basis for
 an overall population estimate, and the synthetic answer key is never used
 as a review outcome.
 

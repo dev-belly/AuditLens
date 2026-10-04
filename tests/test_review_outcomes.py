@@ -88,6 +88,32 @@ def test_original_selection_must_match_its_checksum(workpaper):
         summarize_completed_review(completed, original, record)
 
 
+def test_outcome_counts_and_digest_use_the_same_file_snapshot(workpaper, monkeypatch):
+    original, record, completed = workpaper
+    initial = completed.read_bytes()
+    edited = pd.read_csv(completed, dtype=str, keep_default_na=False)
+    edited.loc[0, ["review_outcome", "evidence_reference"]] = ["exception", "invoice-1"]
+    replacement = edited.to_csv(index=False).encode()
+    expected = {
+        hashlib.sha256(initial).hexdigest(): (0, 1),
+        hashlib.sha256(replacement).hexdigest(): (1, 0),
+    }
+    read_bytes = type(completed).read_bytes
+
+    def read_then_replace(path):
+        contents = read_bytes(path)
+        if path == completed:
+            completed.write_bytes(replacement)
+        return contents
+
+    monkeypatch.setattr(type(completed), "read_bytes", read_then_replace)
+    result = summarize_completed_review(completed, original, record)
+    counts = result["by_route"]["rule_coverage"]
+    assert (counts["exception"], counts["pending"]) == expected[
+        result["completed_workpaper_sha256"]
+    ]
+
+
 @pytest.mark.parametrize(
     "outcome,evidence,error",
     [

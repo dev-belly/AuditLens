@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import sys
 from pathlib import Path
@@ -44,11 +45,11 @@ def summarize_completed_review(
         raise ValueError("original workpaper does not match its selection record")
 
     original = pd.read_csv(
-        selection_path, dtype=str, keep_default_na=False, encoding="utf-8-sig"
+        io.BytesIO(selected_bytes), dtype=str, keep_default_na=False, encoding="utf-8-sig"
     )
     completed_bytes = completed_path.read_bytes()
     completed = pd.read_csv(
-        completed_path, dtype=str, keep_default_na=False, encoding="utf-8-sig"
+        io.BytesIO(completed_bytes), dtype=str, keep_default_na=False, encoding="utf-8-sig"
     )
     if (
         original.columns.tolist() != completed.columns.tolist()
