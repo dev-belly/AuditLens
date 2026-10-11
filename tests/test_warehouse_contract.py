@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 
 import pandas as pd
 import pytest
@@ -146,6 +147,42 @@ def test_reconciled_warehouse_publishes_the_detail_and_summary(tmp_path, monkeyp
     assert counts["audit_alerts"] == 1
     with sqlite3.connect(live_path) as connection:
         assert connection.execute("SELECT total_amount FROM risk_summary").fetchone() == (300.0,)
+
+
+def test_warehouse_closes_check_and_reader_connections_before_replacement(
+    tmp_path, monkeypatch
+) -> None:
+    """Keep connection references alive so garbage collection cannot hide locks."""
+    live_path = tmp_path / "auditlens.db"
+    monkeypatch.setattr(database, "DB_PATH", live_path)
+    original_connect = sqlite3.connect
+    original_replace = database.os.replace
+    connections = []
+
+    def track_connection(*args, **kwargs):
+        connection = original_connect(*args, **kwargs)
+        connections.append(connection)
+        return connection
+
+    def replace_only_closed(source, destination):
+        for connection in connections:
+            with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+                connection.execute("SELECT 1")
+        original_replace(source, destination)
+
+    monkeypatch.setattr(sqlite3, "connect", track_connection)
+    monkeypatch.setattr(database.os, "replace", replace_only_closed)
+    database.load_warehouse(*_reconciliation_inputs())
+    assert "transactions" in database.list_tables(live_path)
+    engine = database.get_engine(live_path)
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql("SELECT COUNT(*) FROM transactions").scalar() == 2
+    # No dispose/GC between reading and rebuilding: pooled readers must not
+    # keep a Windows file handle alive after their context has ended.
+    database.load_warehouse(*_reconciliation_inputs())
+    with closing(original_connect(live_path)) as connection:
+        assert connection.execute("PRAGMA quick_check").fetchone() == ("ok",)
+    assert not list(tmp_path.glob(".auditlens-build-*.db"))
 
 
 @pytest.mark.parametrize("corruption", ["missing_alert", "stale_total", "stale_flagged"])

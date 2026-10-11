@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 464](https://img.shields.io/badge/tests-464%20passing-brightgreen.svg)](#testing)
+[![Tests: 465](https://img.shields.io/badge/tests-465%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **464 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **465 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -565,7 +565,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 464 tests, incl. cross-process reproducibility
+├── tests/                       # 465 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -579,7 +579,7 @@ AuditLens/
 │   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 464 tests + a reproducibility check, on 3.11 and 3.12
+├── .github/workflows/ci.yml     # pipeline + 465 tests; Ubuntu 3.11/3.12 and Windows 3.12
 └── Makefile
 ```
 
@@ -750,7 +750,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 464 tests
+python -m pytest tests/ -q     # 465 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -758,7 +758,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-464 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
+465 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
@@ -777,7 +777,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 | `test_documentation.py` | 19 | The testing table lists every test file, refers to no deleted ones, sums to the badge, and — the check that was missing — matches what pytest actually collects, per file and in total. Also pins the project-structure tree against the modules on disk, every relative link and embedded image against the filesystem, and the Makefile's `.PHONY` declaration against the targets it actually defines, against `make help`'s output, and against every `make` command the docs name |
 | `test_screenshots.py` | 11 | The six dashboard pages are named in four places — the `st.Page` titles, the `page_header` strings the views render, the capture tool's click labels and expected headings, and the committed PNGs — and all four must agree. Checked in both directions, so a rename cannot leave an orphan capture that the README still displays |
 | `test_readme_claims.py` | 27 | Every headline figure, the review-plan figures, all nine rules' flagged/precision/recall, the Benford table and every MAD quoted in the prose, the risk-band counts and values, the component weights, and the structural counts the prose quotes — checked against `outputs/reports/` and against the code |
-| `test_warehouse_contract.py` | 10 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails |
+| `test_warehouse_contract.py` | 11 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails and closes check/read connections before replacement |
 | `test_review_plan.py` | 18 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, complete rule identity, formula-safe CSV export, workpaper checksum and separate synthetic benchmark |
 | `test_review_outcomes.py` | 9 | A completed workpaper can edit review fields only; every finding needs evidence, counts and digests use the same CSV snapshot, and results remain route-specific counts without synthetic labels or population inference |
 
@@ -790,8 +790,11 @@ seven methodology entries while the document held eight, and nothing compared th
 
 ### What CI verifies
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push, on Python
-3.11 and 3.12, and checks the following claims:
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push, on Ubuntu
+with Python 3.11 and 3.12 and on Windows with Python 3.12. SQLite check and read
+connections close before the next warehouse replacement; a regression keeps
+connection references alive to catch file locks without relying on garbage
+collection. The workflow checks the following claims:
 
 1. **The pipeline runs** from a clean checkout, on a different operating system from the
    one it was developed on.
