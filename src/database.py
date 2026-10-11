@@ -35,7 +35,7 @@ import sqlite3
 import sys
 import tempfile
 from math import isclose, isfinite
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -46,6 +46,7 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import NullPool
 
 from src.utils import (
     AUDIT_SUMMARY_REPORT,
@@ -91,7 +92,9 @@ GROUND_TRUTH_LABEL: str = "anomaly_label"
 def get_engine(db_path: Path = DB_PATH) -> Engine:
     """Create a SQLAlchemy engine for the AuditLens warehouse."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(f"sqlite:///{db_path}", future=True)
+    # Connections must close when a reader finishes so Windows can replace the
+    # live warehouse on the next successful build.
+    return create_engine(f"sqlite:///{db_path}", future=True, poolclass=NullPool)
 
 
 @contextmanager
@@ -113,7 +116,8 @@ def _staging_engine() -> Iterator[Engine]:
         engine = get_engine(staged)
         yield engine
         engine.dispose()
-        with sqlite3.connect(staged) as connection:
+        # sqlite3's transaction context commits/rolls back; it does not close.
+        with closing(sqlite3.connect(staged)) as connection:
             check = connection.execute("PRAGMA quick_check").fetchone()[0]
         if check != "ok":
             raise RuntimeError(f"Staged SQLite warehouse failed quick_check: {check}")
@@ -503,7 +507,7 @@ def list_tables(db_path: Path = DB_PATH) -> list[str]:
     """Return the tables present in the warehouse."""
     if not db_path.exists():
         return []
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         rows = connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
         ).fetchall()
