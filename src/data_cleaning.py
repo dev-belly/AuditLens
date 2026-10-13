@@ -28,7 +28,10 @@ Usage::
 
 from __future__ import annotations
 
+import os
+import shutil
 import sys
+import tempfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -508,23 +511,128 @@ def clean_transactions(
     return df, report
 
 
+def _deduplicate_master(df: pd.DataFrame, key: str, source: str) -> pd.DataFrame:
+    """Require one consistent, complete record per master-data ID.
+
+    Missing cells compare equal to other missing cells, but not to populated
+    cells. Compare before lossy conversions such as invalid dates becoming NaT.
+    Source row numbers include the CSV header; no attribute values are exposed.
+    """
+    df = df.reset_index(drop=True).dropna(subset=[key])
+    duplicates = df.loc[df.duplicated(subset=[key], keep=False)]
+    for identifier, group in duplicates.groupby(key, sort=False):
+        first = group.iloc[0]
+        equal = group.eq(first, axis="columns") | (group.isna() & first.isna())
+        conflicts = equal.fillna(False).all().loc[lambda fields: ~fields].index.tolist()
+        if conflicts:
+            rows = ", ".join(str(index + 2) for index in group.index[:6])
+            if len(group) > 6:
+                rows += ", ..."
+            raise ValueError(
+                f"Conflicting master data in {source}: {key}={identifier!r}; "
+                f"source rows {rows}; fields: {', '.join(conflicts)}. "
+                "Reconcile the source records; no record was selected."
+            )
+    return df.drop_duplicates(subset=[key], keep="first").reset_index(drop=True)
+
+
 def clean_master_data(
     vendors: pd.DataFrame, employees: pd.DataFrame
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Clean the vendor and employee master files.
 
-    Master data is small and authoritative, so cleaning is limited to trimming
-    text, parsing the registration date and de-duplicating on the primary key.
+    Trim known text fields and drop missing IDs. Repeated IDs are merged only
+    when all source fields agree after text normalisation. Otherwise reject the
+    extract instead of silently selecting a bank account or employee permission.
+    Date parsing follows validation so distinct invalid dates remain conflicts.
     """
     vendors = normalise_text(vendors, ("vendor_id", "vendor_name", "vendor_category", "bank_account", "country", "risk_level"))
-    vendors["registration_date"] = pd.to_datetime(vendors["registration_date"], errors="coerce", format="mixed")
-    vendors = vendors.dropna(subset=["vendor_id"]).drop_duplicates(subset=["vendor_id"], keep="first")
-
     employees = normalise_text(employees, ("employee_id", "employee_name", "department", "role"))
-    employees = employees.dropna(subset=["employee_id"]).drop_duplicates(subset=["employee_id"], keep="first")
+
+    vendors = _deduplicate_master(vendors, "vendor_id", VENDORS_RAW.name)
+    employees = _deduplicate_master(employees, "employee_id", EMPLOYEES_RAW.name)
+    vendors["registration_date"] = pd.to_datetime(vendors["registration_date"], errors="coerce", format="mixed")
 
     LOGGER.info("Cleaned master data: %s vendors, %s employees", len(vendors), len(employees))
     return vendors.reset_index(drop=True), employees.reset_index(drop=True)
+
+
+def _publish_cleaning_outputs(
+    transactions: pd.DataFrame,
+    vendors: pd.DataFrame,
+    employees: pd.DataFrame,
+    report: DataQualityReport,
+) -> None:
+    """Stage the whole result, then publish with rollback on handled failures.
+
+    Each temporary file lives beside its destination, so replacement stays on
+    one filesystem. This is for a single CLI writer: it is not a multi-file
+    atomic snapshot for concurrent readers or a transaction surviving a crash.
+    """
+    temporary_paths: set[Path] = set()
+    staged: dict[Path, Path] = {}
+    backups: dict[Path, Path | None] = {}
+    published: list[Path] = []
+
+    def temporary_for(target: Path) -> Path:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, name = tempfile.mkstemp(
+            prefix=".auditlens-clean-", suffix=target.suffix, dir=target.parent,
+        )
+        os.close(descriptor)
+        path = Path(name)
+        temporary_paths.add(path)
+        return path
+
+    try:
+        for target, frame in (
+            (TRANSACTIONS_CLEAN, transactions),
+            (VENDORS_CLEAN, vendors),
+            (EMPLOYEES_CLEAN, employees),
+        ):
+            staged[target] = temporary_for(target)
+            frame.to_parquet(staged[target], index=False)
+        staged[DATA_QUALITY_REPORT] = temporary_for(DATA_QUALITY_REPORT)
+        save_json(report.to_dict(), staged[DATA_QUALITY_REPORT])
+
+        # Preserve every previous result before replacing any live output.
+        for target in staged:
+            backups[target] = None
+            if target.exists():
+                backup = temporary_for(target)
+                shutil.copyfile(target, backup)
+                backups[target] = backup
+        for target, stage in staged.items():
+            os.replace(stage, target)
+            published.append(target)
+    except BaseException as error:
+        recovery_paths: list[str] = []
+        for target in reversed(published):
+            backup = backups[target]
+            try:
+                if backup is None:
+                    target.unlink(missing_ok=True)
+                else:
+                    os.replace(backup, target)
+            except OSError:
+                if backup is not None:
+                    # Do not delete the only remaining copy of the old result.
+                    temporary_paths.discard(backup)
+                    recovery_paths.append(f"{target} from {backup}")
+                else:
+                    recovery_paths.append(f"remove newly published {target}")
+        if recovery_paths:
+            raise RuntimeError(
+                "Cleaning publication failed and rollback was incomplete. "
+                "Recover previous outputs: " + "; ".join(recovery_paths)
+            ) from error
+        raise
+    finally:
+        for path in temporary_paths:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                LOGGER.warning("Could not remove cleaning temporary file %s", path)
 
 
 def run_cleaning() -> dict[str, Any]:
@@ -536,13 +644,10 @@ def run_cleaning() -> dict[str, Any]:
     ensure_directories()
     transactions_raw, vendors_raw, employees_raw = load_raw_data()
 
-    transactions, report = clean_transactions(transactions_raw, vendors_raw)
     vendors, employees = clean_master_data(vendors_raw, employees_raw)
+    transactions, report = clean_transactions(transactions_raw, vendors)
 
-    transactions.to_parquet(TRANSACTIONS_CLEAN, index=False)
-    vendors.to_parquet(VENDORS_CLEAN, index=False)
-    employees.to_parquet(EMPLOYEES_CLEAN, index=False)
-    save_json(report.to_dict(), DATA_QUALITY_REPORT)
+    _publish_cleaning_outputs(transactions, vendors, employees, report)
 
     LOGGER.info("Wrote %s", TRANSACTIONS_CLEAN)
     LOGGER.info("Wrote %s", DATA_QUALITY_REPORT)
