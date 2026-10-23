@@ -237,6 +237,13 @@ class TestCoerceNumeric:
 
         assert list(result.columns) == ["other"]
 
+    def test_nonfinite_numeric_values_become_missing(self) -> None:
+        frame = pd.DataFrame({"amount": [float("inf"), float("-inf"), 100.0]})
+        result = coerce_numeric(frame, ("amount",))
+
+        assert result["amount"].isna().tolist() == [True, True, False]
+        assert result["amount"].iloc[2] == 100.0
+
 
 # --------------------------------------------------------------------------- #
 # Duplicates
@@ -265,6 +272,28 @@ class TestRemoveDuplicates:
 
         assert removed == 0
         assert len(frame) == 2
+
+    @pytest.mark.parametrize(
+        ("field", "changed"),
+        [
+            ("currency", "USD"),
+            ("fx_rate", 7.0),
+            ("invoice_id", "INV-DIFFERENT"),
+            ("approved_by", "E9999"),
+            ("credit_account_code", "1002"),
+            ("posting_date", WEEKDAY + pd.Timedelta(days=1)),
+        ],
+    )
+    def test_conflicting_source_evidence_is_not_silently_deduplicated(
+        self, field: str, changed: object
+    ) -> None:
+        original = dict(BASE_TRANSACTION)
+        conflicting = {**original, field: changed}
+        frame, removed = remove_duplicate_rows(pd.DataFrame([original, conflicting, original]))
+
+        assert removed == 1
+        assert len(frame) == 2
+        assert frame[field].tolist() == [original[field], changed]
 
 
 # --------------------------------------------------------------------------- #
@@ -520,6 +549,26 @@ class TestCleanTransactions:
 
         assert len(twice) == len(once)
         assert report.duplicates_removed == 0
+
+    def test_infinite_functional_amount_is_removed_and_reported(self) -> None:
+        transactions = _frame([{}, {"amount": float("inf")}])
+        vendors = pd.DataFrame({"vendor_id": ["V0001"]})
+        clean, report = clean_transactions(transactions, vendors)
+
+        assert len(clean) == 1
+        assert report.invalid_amount_rows == 1
+        assert clean["transaction_id"].tolist() == ["TX0001"]
+
+    @pytest.mark.parametrize(
+        ("original", "rate"),
+        [(float("inf"), 1.0), (100.0, float("inf")), (1e308, 7.0)],
+    )
+    def test_nonfinite_translation_uses_finite_functional_amount(self, original, rate) -> None:
+        transactions = _frame([{"amount_original": original, "fx_rate": rate}])
+        vendors = pd.DataFrame({"vendor_id": ["V0001"]})
+        clean, _ = clean_transactions(transactions, vendors)
+
+        assert clean["amount_cny"].tolist() == [BASE_TRANSACTION["amount"]]
 
 
 def _masters(vendor_rows: list[dict] | None = None, employee_rows: list[dict] | None = None):
