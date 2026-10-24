@@ -44,7 +44,7 @@ def _log_uniform(size: int, low: float = 10.0, high: float = 1_000_000.0, seed: 
 # First-digit extraction
 # --------------------------------------------------------------------------- #
 class TestExtractFirstDigit:
-    """The leading digit, derived arithmetically."""
+    """The leading digit of the numeric value, without boundary rounding."""
 
     @pytest.mark.parametrize(
         ("amount", "expected"),
@@ -98,6 +98,54 @@ class TestExtractFirstDigit:
         """1,000 must read as a 1, not a 9 from a log10 rounding artefact."""
         values = pd.Series([1_000.0, 10_000.0, 100_000.0, 1_000_000.0])
         assert extract_first_digit(values).tolist() == [1, 1, 1, 1]
+
+
+@pytest.mark.parametrize(
+    ("amount", "first", "two"),
+    [
+        (9_999_999.99, 9, 99),
+        (19_999_999.99, 1, 19),
+        (29_999_999.99, 2, 29),
+        (99_999_999.99, 9, 99),
+        (129_999_999.99, 1, 12),
+        (999_999_999.99, 9, 99),
+    ],
+)
+def test_large_cent_amounts_keep_their_actual_leading_digits(amount, first, two):
+    values = pd.Series([amount, -amount])
+    assert extract_first_digit(values).tolist() == [first, first]
+    assert extract_first_two_digits(values).tolist() == [two, two]
+
+
+def test_adjacent_floats_and_exact_powers_are_distinct_digit_buckets():
+    powers = np.asarray([float(f"1e{exponent}") for exponent in range(1, 25)])
+    below = pd.Series(np.nextafter(powers, 0))
+    exact = pd.Series(powers)
+    above = pd.Series(np.nextafter(powers, np.inf))
+    assert extract_first_digit(below, min_amount=0).tolist() == [9] * len(powers)
+    assert extract_first_two_digits(below, min_amount=0).tolist() == [99] * len(powers)
+    for values in [exact, above]:
+        assert extract_first_digit(values).tolist() == [1] * len(powers)
+        assert extract_first_two_digits(values).tolist() == [10] * len(powers)
+
+
+@pytest.mark.parametrize("extract", [extract_first_digit, extract_first_two_digits])
+def test_nonfinite_amounts_and_zero_do_not_contribute_digit_evidence(extract):
+    values = pd.Series([np.inf, -np.inf, np.nan, 0.0, 12.0], index=["x", "x", "y", "z", "ok"])
+    result = extract(values, min_amount=0)
+    assert result.isna().tolist() == [True, True, True, True, False]
+    assert result.index.tolist() == values.index.tolist()
+
+
+@pytest.mark.parametrize(
+    ("analyze", "bucket"), [(first_digit_test, 9), (first_two_digit_test, 99)]
+)
+def test_benford_observed_counts_reconcile_large_boundary_amounts(analyze, bucket):
+    result = analyze(pd.Series([9_999_999.99] * 300))
+    counts = result.table.set_index("digit")["observed_count"]
+    assert counts.loc[bucket] == result.n_observations == 300
+    assert counts.sum() == 300
+    assert counts.loc[1 if bucket == 9 else 10] == 0
 
 
 # --------------------------------------------------------------------------- #

@@ -261,6 +261,12 @@ credit_amount`, so testing both legs would double-count every value. Values belo
 CNY 10 are excluded, because a small number's leading digit is not distributed the
 way Benford's Law describes.
 
+Digit extraction reads each finite numeric amount's shortest round-trip decimal
+representation, including scientific notation. It does not add an epsilon to
+the amount or its logarithm: CNY 9,999,999.99 belongs to leading digit 9 and
+first-two-digit bucket 99, while exactly CNY 10,000,000 belongs to 1 and 10.
+Zero and non-finite values have no digit evidence, even with a zero cutoff.
+
 ### Results
 
 | Test | Observations | MAD | χ² | df | p | Conformity |

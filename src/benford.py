@@ -83,11 +83,28 @@ MAD_AT_MAXIMUM_RISK: float = 0.030
 # --------------------------------------------------------------------------- #
 # Digit extraction
 # --------------------------------------------------------------------------- #
+def _significant_digits(amounts: pd.Series, min_amount: float, count: int) -> pd.Series:
+    """Read decimal digits without nudging values across a digit boundary."""
+    absolute = amounts.abs().astype("float64")
+    usable = np.isfinite(absolute) & (absolute > 0) & (absolute >= min_amount)
+    result = pd.Series(pd.NA, index=amounts.index, dtype="Int64")
+    # Python's shortest round-trip float text is locale-independent. Reading its
+    # significand avoids both log10 rounding and an epsilon changing 9,999,999.99
+    # into the first-digit bucket for 10,000,000. Scientific exponents do not
+    # affect significant digits; e.g. 1.2e+20 and 0.0012 both begin with 12.
+    values = (
+        str(float(value)).split("e", 1)[0].replace(".", "").lstrip("0")
+        for value in absolute[usable]
+    )
+    result.loc[usable] = [int(digits[:count].ljust(count, "0")) for digits in values]
+    return result
+
+
 def extract_first_digit(amounts: pd.Series, min_amount: float = MIN_AMOUNT_FOR_TEST) -> pd.Series:
     """Return the leading (most significant) digit of each amount.
 
-    The digit is derived arithmetically rather than from string formatting, so it
-    is unaffected by locale, thousands separators or rounding.
+    Read the shortest round-trip decimal representation of each finite numeric
+    value, without rounding it or adding a boundary-adjustment epsilon.
 
     Args:
         amounts: Monetary values. Signs are ignored - a credit of 1,200 starts
@@ -98,22 +115,7 @@ def extract_first_digit(amounts: pd.Series, min_amount: float = MIN_AMOUNT_FOR_T
     Returns:
         Series of integers in 1-9, with ``NA`` for values that were filtered out.
     """
-    absolute = amounts.abs().astype("float64")
-    usable = absolute >= min_amount
-
-    digits = pd.Series(pd.NA, index=amounts.index, dtype="Int64")
-    if not usable.any():
-        return digits
-
-    values = absolute[usable].to_numpy()
-    # A tiny epsilon guards against floating-point error at exact powers of ten
-    # (for example log10(1000) evaluating to 2.9999999999999996).
-    exponent = np.floor(np.log10(values) + 1e-9)
-    leading = values / np.power(10.0, exponent)
-    leading_digit = np.floor(leading + 1e-9).astype(int)
-    digits.loc[usable] = np.clip(leading_digit, 1, 9)
-
-    return digits
+    return _significant_digits(amounts, min_amount, 1)
 
 
 def extract_first_two_digits(
@@ -125,20 +127,7 @@ def extract_first_two_digits(
     it produces 90 buckets instead of 9, so a pattern hidden inside a single
     leading digit becomes visible.
     """
-    absolute = amounts.abs().astype("float64")
-    usable = absolute >= min_amount
-
-    result = pd.Series(pd.NA, index=amounts.index, dtype="Int64")
-    if not usable.any():
-        return result
-
-    values = absolute[usable].to_numpy()
-    exponent = np.floor(np.log10(values) + 1e-9) - 1.0
-    scaled = values / np.power(10.0, exponent)
-    first_two = np.floor(scaled + 1e-9).astype(int)
-    result.loc[usable] = np.clip(first_two, 10, 99)
-
-    return result
+    return _significant_digits(amounts, min_amount, 2)
 
 
 # --------------------------------------------------------------------------- #
