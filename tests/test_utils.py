@@ -9,6 +9,8 @@ every dtype the label actually takes.
 
 from __future__ import annotations
 
+import csv
+import io
 import sys
 from pathlib import Path
 
@@ -20,7 +22,35 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.utils import REASON_SEPARATOR, as_flag_series, as_list, as_reason_list
+from src.utils import REASON_SEPARATOR, as_flag_series, as_list, as_reason_list, review_csv_text
+
+
+def test_review_csv_marks_formula_variants_and_control_prefixes_as_text() -> None:
+    values = ["=1", "+1", "-1", "@SUM(1)", "＝1", "＋1", "－1", "＠SUM(1)",
+              "  ＝1", "\t=1", "\r=1", "\n=1", "\ufeff=1", "\x00=1", "\x7f=1"]
+    frame = pd.DataFrame({"note": values})
+    rows = list(csv.reader(io.StringIO(review_csv_text(frame), newline="")))
+    assert rows == [["note"], *[["text: " + value] for value in values]]
+    assert frame["note"].tolist() == values
+
+
+def test_review_csv_preserves_multiline_cells_numbers_and_missing_values() -> None:
+    note = 'A\rB\nC\r\nD, "quoted"'
+    frame = pd.DataFrame({"note": [note, "plain"], "amount": [-12.5, np.nan]})
+    rows = list(csv.reader(io.StringIO(review_csv_text(frame, float_format="%.10g"), newline="")))
+    assert rows == [["note", "amount"], [note, "-12.5"], ["plain", ""]]
+
+
+def test_review_csv_prefix_is_collision_safe() -> None:
+    values = ["=1", "text: =1", "text: text: =1"]
+    frame = pd.DataFrame({"note": values})
+    rows = list(csv.reader(io.StringIO(review_csv_text(frame), newline="")))
+    assert rows[1:] == [["text: " + value] for value in values]
+
+
+def test_review_csv_empty_table_still_has_a_safe_header() -> None:
+    text = review_csv_text(pd.DataFrame(columns=["＝field"]))
+    assert list(csv.reader(io.StringIO(text, newline=""))) == [["text: ＝field"]]
 
 
 class TestAsFlagSeries:

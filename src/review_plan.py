@@ -13,6 +13,7 @@ pipeline, or let ``src/run_pipeline.py`` generate the default workpaper.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import sys
 from dataclasses import dataclass
@@ -36,8 +37,8 @@ from src.utils import (
     ensure_directories,
     get_logger,
     load_dataframe,
+    review_csv_text,
     save_json,
-    spreadsheet_safe_cell,
 )
 
 LOGGER = get_logger(__name__)
@@ -47,6 +48,7 @@ DECISION_COLUMNS = (
     "audit_risk_score", "risk_level", "rule_alert_count", "risk_reason_text",
 )
 ROUTES = ("rule_coverage", "risk_priority", "random_control")
+SOURCE_FINGERPRINT_FORMAT = "selection-v2"
 
 
 @dataclass(frozen=True)
@@ -116,9 +118,15 @@ def selection_fingerprint(transactions: pd.DataFrame, alerts: pd.DataFrame) -> s
     if "rule_label" in alerts:
         rule_columns.append("rule_label")
     rules = alerts[rule_columns].sort_values(["transaction_id", "rule_key"])
-    digest = hashlib.sha256()
-    for frame in (ledger, rules):
-        digest.update(frame.to_csv(index=False, lineterminator="\n", float_format="%.12g").encode())
+    digest = hashlib.sha256(f"AuditLens {SOURCE_FINGERPRINT_FORMAT}\n".encode())
+    for name, frame in (("ledger", ledger), ("rules", rules)):
+        digest.update(f"{name}\n".encode())
+        # Selection uses full binary64 scores/amounts. Display precision can
+        # merge adjacent floats that reverse a priority tie. Seventeen digits
+        # retain binary64 values, and quoting all fields also preserves CR/LF.
+        digest.update(frame.to_csv(
+            index=False, lineterminator="\n", float_format="%.17g", quoting=csv.QUOTE_ALL,
+        ).encode())
     return digest.hexdigest()
 
 
@@ -232,6 +240,7 @@ def build_review_plan(
         "uncovered_rule_keys": sorted(population_rules - set(covered)),
         "selected_amount_cny": round(float(queue["debit_amount"].sum()), 2),
         "selected_high_or_critical": int(queue["risk_level"].isin(["High", "Critical"]).sum()),
+        "source_fingerprint_format": SOURCE_FINGERPRINT_FORMAT,
         "source_sha256": selection_fingerprint(transactions, alerts),
         "interpretation": (
             "Targeted cases are judgmental selections. The random probability and weight "
@@ -249,8 +258,7 @@ def write_review_plan(
     """Write the auditor queue and a checksum-bound selection record."""
     queue_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
-    export_queue = plan.queue.map(spreadsheet_safe_cell)
-    contents = export_queue.to_csv(index=False, lineterminator="\n", float_format="%.10g")
+    contents = review_csv_text(plan.queue, float_format="%.10g")
     summary = {**plan.summary, "queue_sha256": hashlib.sha256(contents.encode()).hexdigest()}
     queue_path.write_bytes(contents.encode("utf-8"))
     save_json(summary, summary_path)

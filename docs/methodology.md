@@ -496,6 +496,14 @@ one reason — a score with no explanation is treated as a bug.
 
 ## 7. Audit review selection
 
+Cleaning removes a repeated normalized extract row only when every supplied
+column agrees. Rows sharing the former eight-column subset but differing in
+currency, FX, invoice, approval, credit account or posting evidence remain
+visible to downstream key validation. Numeric infinities become missing values;
+an overflowing FX product also becomes missing before the documented functional
+amount fallback. These are input-quality rules, not evidence of a confirmed
+accounting exception. Raw extracts are retained separately.
+
 The default workpaper budgets 300 vouchers. Selection is made only from scored
 transactions and rule alerts; `anomaly_label` and `anomaly_type` are absent from
 every decision field and from the auditor-facing CSV.
@@ -516,7 +524,22 @@ from source documents. The targeted route has no design-based sampling weight.
 
 `review_plan_summary.json` records the policy, rule coverage, selection-input
 fingerprint (including the rule labels printed in selection reasons) and CSV
-checksum. Missing or conflicting rule identities stop workpaper generation.
+checksum. The source fingerprint now records format `selection-v2`: it sorts
+the decision inputs, names the ledger/rule sections, quotes every CSV field and
+retains 17 significant digits for binary64 numeric inputs. The earlier 12-digit
+format could hash two distinct scores or amounts identically even when their
+priority order changed. Review CSV precision remains a display choice; its own
+`queue_sha256` binds the exact exported bytes. Existing original CSV/selection
+record pairs remain usable for outcome capture; regenerating a source fingerprint
+uses the new format and does not overwrite or authenticate an old record.
+Missing or conflicting rule identities stop workpaper generation.
+Auditor-facing review queues and high-risk extracts mark formula-shaped text
+(ASCII/fullwidth prefixes and leading control/BOM characters) with visible
+`text: ` prefixes. A pre-existing marker is escaped again to prevent collisions.
+CR/LF/CRLF within a value is quoted without changing it; records retain LF.
+Only these review copies are transformed; raw data tables and selection inputs
+remain unchanged. Existing original CSV/selection-record pairs still validate
+under their retained bytes; re-exporting uses the current CSV policy.
 `review_plan_benchmark.json` is a separate
 **synthetic-only** diagnostic computed after selection: 107 injected anomalies
 are in the workpaper, compared with 140 under pure risk ranking at the same
