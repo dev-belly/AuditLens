@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -83,6 +84,28 @@ def test_rule_labels_used_in_review_reasons_are_bound_to_source_fingerprint(popu
     assert original.queue["transaction_id"].tolist() == revised.queue["transaction_id"].tolist()
     assert original.summary["source_sha256"] != revised.summary["source_sha256"]
     assert "Control A" in revised.queue.loc[0, "selection_reason"]
+
+
+@pytest.mark.parametrize("column,base", [("audit_risk_score", 80.0), ("debit_amount", 100.0)])
+def test_one_ulp_priority_change_cannot_keep_the_same_source_fingerprint(population, column, base) -> None:
+    transactions = population[0].iloc[:2].copy()
+    transactions["rule_alert_count"] = 0
+    transactions["audit_risk_score"] = 80.0
+    transactions["debit_amount"] = 100.0
+    transactions[column] = [base, np.nextafter(base, np.inf)]
+    alerts = pd.DataFrame({
+        "transaction_id": pd.Series(dtype=str), "rule_key": pd.Series(dtype=str),
+    })
+    policy = ReviewPolicy(1, 0, 42)
+    original = build_review_plan(transactions, alerts, policy)
+    revised = transactions.copy()
+    revised[column] = transactions[column].iloc[::-1].to_numpy()
+    changed = build_review_plan(revised, alerts, policy)
+
+    assert original.queue["transaction_id"].tolist() == ["TX2"]
+    assert changed.queue["transaction_id"].tolist() == ["TX1"]
+    assert original.summary["source_sha256"] != changed.summary["source_sha256"]
+    assert original.summary["source_fingerprint_format"] == "selection-v2"
 
 
 @pytest.mark.parametrize("corruption", ["blank_rule", "blank_label", "conflicting_label"])
