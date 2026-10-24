@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 503](https://img.shields.io/badge/tests-503%20passing-brightgreen.svg)](#testing)
+[![Tests: 508](https://img.shields.io/badge/tests-508%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **503 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **508 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -410,8 +410,15 @@ seeded random controls from the **29,888 vouchers left after targeted selection*
 It includes each case's selection reason, triggered rules, risk explanation, and
 blank outcome, evidence-reference and reviewer-note fields. No injected answer-key
 column enters the queue or its selection fingerprint.
-Text cells that could be read as spreadsheet formulas are prefixed with an
-apostrophe in the CSV; the source values and selection logic are unchanged.
+Review CSV values and headers that could be read as spreadsheet formulas,
+including fullwidth variants, receive a visible `text: ` prefix. Leading
+control/BOM characters are marked, and an existing `text: ` prefix is escaped
+again to keep distinct values distinct. Embedded CR, LF and CRLF stay quoted
+inside cells; record endings remain LF. Source values and selection logic are
+unchanged. This policy covers the review queue and high-risk extract; internal
+data files retain their raw values. CSV remains a review copy, with behavior
+depending on spreadsheet import/editing settings; see
+[OWASP's guidance](https://owasp.org/www-community/attacks/CSV_Injection).
 
 The random controls have an inclusion probability of **60 / 29,888 = 0.2007%**
 within that remaining frame. The [selection record](outputs/reports/review_plan_summary.json)
@@ -571,7 +578,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 503 tests, incl. cross-process reproducibility
+├── tests/                       # 508 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -585,7 +592,7 @@ AuditLens/
 │   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 503 tests; Ubuntu 3.11/3.12 and Windows 3.12
+├── .github/workflows/ci.yml     # pipeline + 508 tests; Ubuntu 3.11/3.12 and Windows 3.12
 └── Makefile
 ```
 
@@ -758,7 +765,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 503 tests
+python -m pytest tests/ -q     # 508 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -766,7 +773,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-503 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
+508 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
@@ -776,7 +783,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
 | `test_dashboard.py` | 65 | Renders all six pages in-process via `AppTest`, checks the workpaper handoff, control catalogue and distinct-voucher share, and pins the no-ground-truth guard at both the rendered-output and grid-builder level |
 | `test_feature_engineering.py` | 9 | The model's feature matrix: no ground-truth column can reach it, the matrix and its descriptions cover exactly the same set, and the committed `model_metrics.json` records the features the code actually built |
-| `test_utils.py` | 19 | `as_flag_series` across every dtype the label takes, including the two string traps |
+| `test_utils.py` | 23 | `as_flag_series` across every dtype the label takes; review CSV formulas, multiline cells, numbers, missing values, prefix collisions and empty headers |
 | `test_ci_summary.py` | 9 | The CI job summary renders, carries its benchmark caveat, and degrades to a dash on schema drift rather than breaking the build |
 | `test_reporting.py` | 8 | The flag-vs-anomaly distinction in `detector_overlap`, stable ordering for equal risk scores, and formula-safe text in the review extract |
 | `test_reproducibility.py` | 4 | Runs the generator in two subprocesses with different `PYTHONHASHSEED` values and compares hashes |
@@ -786,7 +793,7 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 | `test_screenshots.py` | 11 | The six dashboard pages are named in four places — the `st.Page` titles, the `page_header` strings the views render, the capture tool's click labels and expected headings, and the committed PNGs — and all four must agree. Checked in both directions, so a rename cannot leave an orphan capture that the README still displays |
 | `test_readme_claims.py` | 27 | Every headline figure, the review-plan figures, all nine rules' flagged/precision/recall, the Benford table and every MAD quoted in the prose, the risk-band counts and values, the component weights, and the structural counts the prose quotes — checked against `outputs/reports/` and against the code |
 | `test_warehouse_contract.py` | 11 | Rejects partial SQLite builds, duplicate keys, orphaned or missing alerts and stale summary totals; preserves the prior warehouse when reconciliation fails and closes check/read connections before replacement |
-| `test_review_plan.py` | 20 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, complete rule identity, one-ULP priority fingerprints, formula-safe CSV export, workpaper checksum and separate synthetic benchmark |
+| `test_review_plan.py` | 21 | Fixed-budget coverage and risk ranking, random inclusion probabilities, label blindness, input-order invariance, complete rule identity, one-ULP priority fingerprints, formula-safe/multiline CSV handoff, workpaper checksum and separate synthetic benchmark |
 | `test_review_outcomes.py` | 9 | A completed workpaper can edit review fields only; every finding needs evidence, counts and digests use the same CSV snapshot, and results remain route-specific counts without synthetic labels or population inference |
 
 Six of these are regression guards for bugs that were actually shipped during
