@@ -525,6 +525,13 @@ priority order changed. Review CSV precision remains a display choice; its own
 record pairs remain usable for outcome capture; regenerating a source fingerprint
 uses the new format and does not overwrite or authenticate an old record.
 Missing or conflicting rule identities stop workpaper generation.
+Auditor-facing review queues and high-risk extracts mark formula-shaped text
+(ASCII/fullwidth prefixes and leading control/BOM characters) with visible
+`text: ` prefixes. A pre-existing marker is escaped again to prevent collisions.
+CR/LF/CRLF within a value is quoted without changing it; records retain LF.
+Only these review copies are transformed; raw data tables and selection inputs
+remain unchanged. Existing original CSV/selection-record pairs still validate
+under their retained bytes; re-exporting uses the current CSV policy.
 `review_plan_benchmark.json` is a separate
 **synthetic-only** diagnostic computed after selection: 107 injected anomalies
 are in the workpaper, compared with 140 under pure risk ranking at the same

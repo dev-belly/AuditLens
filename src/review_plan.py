@@ -37,8 +37,8 @@ from src.utils import (
     ensure_directories,
     get_logger,
     load_dataframe,
+    review_csv_text,
     save_json,
-    spreadsheet_safe_cell,
 )
 
 LOGGER = get_logger(__name__)
@@ -258,8 +258,7 @@ def write_review_plan(
     """Write the auditor queue and a checksum-bound selection record."""
     queue_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
-    export_queue = plan.queue.map(spreadsheet_safe_cell)
-    contents = export_queue.to_csv(index=False, lineterminator="\n", float_format="%.10g")
+    contents = review_csv_text(plan.queue, float_format="%.10g")
     summary = {**plan.summary, "queue_sha256": hashlib.sha256(contents.encode()).hexdigest()}
     queue_path.write_bytes(contents.encode("utf-8"))
     save_json(summary, summary_path)

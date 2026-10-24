@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import csv
+import io
 
 import numpy as np
 import pandas as pd
@@ -172,10 +174,10 @@ def test_workpaper_escapes_spreadsheet_formulas_without_changing_selection(popul
     csv_path, json_path = tmp_path / "selection.csv", tmp_path / "selection.json"
     write_review_plan(plan, csv_path, json_path)
     exported = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
-    selected = exported.loc[exported["transaction_id"] == "'" + dangerous_id].iloc[0]
-    assert selected["vendor_id"] == "'  +SUM(1,2)"
-    assert selected["risk_reason_text"] == "'-1+2"
-    assert selected["risk_level"] == "'@SUM(1,2)"
+    selected = exported.loc[exported["transaction_id"] == "text: " + dangerous_id].iloc[0]
+    assert selected["vendor_id"] == "text:   +SUM(1,2)"
+    assert selected["risk_reason_text"] == "text: -1+2"
+    assert selected["risk_level"] == "text: @SUM(1,2)"
     assert selected["selection_reason"].startswith("Covers procedures: ")
     assert plan.queue["transaction_id"].tolist() == original_ids
     assert plan.queue.loc[plan.queue["transaction_id"] == dangerous_id, "vendor_id"].iloc[0] == (
@@ -197,3 +199,20 @@ def test_synthetic_benchmark_is_computed_only_after_the_label_blind_selection(po
     changed["anomaly_label"] = "0"  # parquet also stores labels as strings
     assert build_review_plan(changed, alerts, ReviewPolicy(5, 0.2, 42)).queue.equals(plan.queue)
     assert benchmark_review_plan(plan, changed)["plan_injected_anomalies_found"] == 0
+
+
+def test_multiline_fullwidth_id_survives_workpaper_and_outcome_capture(population, tmp_path) -> None:
+    transactions, alerts = (frame.copy() for frame in population)
+    identifier = "＝1\rsecond\nthird\r\nfourth"
+    transactions.loc[transactions["transaction_id"] == "TX2", "transaction_id"] = identifier
+    alerts.loc[alerts["transaction_id"] == "TX2", "transaction_id"] = identifier
+    plan = build_review_plan(transactions, alerts, ReviewPolicy(5, 0.2, 42))
+    original, record, completed = (tmp_path / name for name in ("original.csv", "record.json", "copy.csv"))
+    write_review_plan(plan, original, record)
+    raw = original.read_bytes()
+    rows = list(csv.DictReader(io.StringIO(raw.decode(), newline="")))
+    assert rows[0]["transaction_id"] == "text: " + identifier
+    assert len(rows) == 5
+    assert plan.queue.loc[0, "transaction_id"] == identifier
+    completed.write_bytes(raw)
+    assert summarize_completed_review(completed, original, record)["selected_count"] == 5

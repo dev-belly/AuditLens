@@ -422,10 +422,27 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def spreadsheet_safe_cell(value: Any) -> Any:
-    """Prefix formula-like text in auditor-facing CSV exports."""
-    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
-        return "'" + value
+    """Keep untrusted review text visibly textual; source data stays unchanged."""
+    if isinstance(value, str) and value:
+        stripped = value.lstrip()
+        if (value.startswith("text: ") or ord(value[0]) < 32 or ord(value[0]) == 127
+                or value[0] == "\ufeff"
+                or stripped.startswith(("=", "+", "-", "@", "＝", "＋", "－", "＠"))):
+            return "text: " + value
     return value
+
+
+def review_csv_text(frame: pd.DataFrame, *, float_format: str | None = None) -> str:
+    """Write review CSV with LF records and quoted embedded CR/LF unchanged."""
+    exported = frame.map(spreadsheet_safe_cell).rename(columns=spreadsheet_safe_cell)
+    options = {"index": False, "lineterminator": "\r\n", "float_format": float_format}
+    # Using CRLF for each record makes pandas quote both CR and LF inside a
+    # field. Normalize only that record's final terminator, never its cell data.
+    header = exported.iloc[:0].to_csv(**options).removesuffix("\r\n") + "\n"
+    return header + "".join(
+        exported.iloc[index:index + 1].to_csv(header=False, **options).removesuffix("\r\n") + "\n"
+        for index in range(len(exported))
+    )
 
 
 def save_dataframe(df: pd.DataFrame, path: Path) -> Path:

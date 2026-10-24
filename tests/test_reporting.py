@@ -63,10 +63,10 @@ def test_high_risk_extract_escapes_formula_like_text_without_changing_source(
 
     reporting.write_high_risk_extract(vouchers)
     row = pd.read_csv(output, dtype=str, keep_default_na=False).iloc[0]
-    assert row["transaction_id"] == "'" + voucher_id
-    assert row["vendor_name"] == "'  +SUM(1,2)"
-    assert row["description"] == "'-1+2"
-    assert row["risk_reason_text"] == "'@SUM(1,2)"
+    assert row["transaction_id"] == "text: " + voucher_id
+    assert row["vendor_name"] == "text:   +SUM(1,2)"
+    assert row["description"] == "text: -1+2"
+    assert row["risk_reason_text"] == "text: @SUM(1,2)"
     assert row["audit_risk_score"] == "82.0"
     assert vouchers.loc[0, "transaction_id"] == voucher_id
     assert vouchers.loc[0, "vendor_name"] == "  +SUM(1,2)"
