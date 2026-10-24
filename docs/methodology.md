@@ -516,7 +516,15 @@ from source documents. The targeted route has no design-based sampling weight.
 
 `review_plan_summary.json` records the policy, rule coverage, selection-input
 fingerprint (including the rule labels printed in selection reasons) and CSV
-checksum. Missing or conflicting rule identities stop workpaper generation.
+checksum. The source fingerprint now records format `selection-v2`: it sorts
+the decision inputs, names the ledger/rule sections, quotes every CSV field and
+retains 17 significant digits for binary64 numeric inputs. The earlier 12-digit
+format could hash two distinct scores or amounts identically even when their
+priority order changed. Review CSV precision remains a display choice; its own
+`queue_sha256` binds the exact exported bytes. Existing original CSV/selection
+record pairs remain usable for outcome capture; regenerating a source fingerprint
+uses the new format and does not overwrite or authenticate an old record.
+Missing or conflicting rule identities stop workpaper generation.
 `review_plan_benchmark.json` is a separate
 **synthetic-only** diagnostic computed after selection: 107 injected anomalies
 are in the workpaper, compared with 140 under pure risk ranking at the same
