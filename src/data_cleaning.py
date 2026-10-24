@@ -299,7 +299,9 @@ def coerce_numeric(df: pd.DataFrame, columns: tuple[str, ...]) -> pd.DataFrame:
 
         series = df[column]
         if pd.api.types.is_numeric_dtype(series):
-            df[column] = pd.to_numeric(series, errors="coerce")
+            df[column] = pd.to_numeric(series, errors="coerce").replace(
+                [float("inf"), float("-inf")], float("nan")
+            )
             continue
 
         text = series.astype("string")
@@ -316,27 +318,12 @@ def coerce_numeric(df: pd.DataFrame, columns: tuple[str, ...]) -> pd.DataFrame:
 def remove_duplicate_rows(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
     """Drop exact duplicate rows, keeping the first occurrence.
 
-    Duplicates are compared on the full business key rather than on
-    ``transaction_id`` alone, because a duplicated ``transaction_id`` with a
-    different amount is a *different* problem (a broken key) from a fully
-    duplicated extract row.
+    Compare every supplied column. Repeated IDs with different currencies,
+    approvals or other source evidence are conflicting records, not exact
+    duplicate extracts, and must remain visible for downstream validation.
     """
-    business_key = [
-        column
-        for column in (
-            "transaction_id",
-            "journal_id",
-            "transaction_date",
-            "account_code",
-            "debit_amount",
-            "credit_amount",
-            "vendor_id",
-            "description",
-        )
-        if column in df.columns
-    ]
     before = len(df)
-    deduped = df.drop_duplicates(subset=business_key, keep="first").reset_index(drop=True)
+    deduped = df.drop_duplicates(keep="first").reset_index(drop=True)
     return deduped, before - len(deduped)
 
 
@@ -478,7 +465,9 @@ def clean_transactions(
     # ---- 3. Derived columns used downstream ---------------------------------
     # The functional currency is CNY; foreign documents are translated so that
     # every downstream aggregate is apples-to-apples.
-    df["amount_cny"] = (df["amount_original"] * df["fx_rate"]).round(2)
+    df["amount_cny"] = (df["amount_original"] * df["fx_rate"]).round(2).replace(
+        [float("inf"), float("-inf")], float("nan")
+    )
     # Where the translation is missing, fall back to the functional amount.
     df["amount_cny"] = df["amount_cny"].fillna(df["amount"]).round(2)
 

@@ -496,6 +496,14 @@ one reason — a score with no explanation is treated as a bug.
 
 ## 7. Audit review selection
 
+Cleaning removes a repeated normalized extract row only when every supplied
+column agrees. Rows sharing the former eight-column subset but differing in
+currency, FX, invoice, approval, credit account or posting evidence remain
+visible to downstream key validation. Numeric infinities become missing values;
+an overflowing FX product also becomes missing before the documented functional
+amount fallback. These are input-quality rules, not evidence of a confirmed
+accounting exception. Raw extracts are retained separately.
+
 The default workpaper budgets 300 vouchers. Selection is made only from scored
 transactions and rule alerts; `anomaly_label` and `anomaly_type` are absent from
 every decision field and from the auditor-facing CSV.

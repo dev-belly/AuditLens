@@ -3,7 +3,7 @@
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 508](https://img.shields.io/badge/tests-508%20passing-brightgreen.svg)](#testing)
+[![Tests: 519](https://img.shields.io/badge/tests-519%20passing-brightgreen.svg)](#testing)
 
 **Financial anomaly detection and audit analytics over a 30,000-voucher general ledger.**
 
@@ -58,7 +58,7 @@ Three design commitments drive everything else:
 | Anomalies caught by neither | **15** |
 | Isolation Forest | ROC-AUC **0.816**, precision 0.291, recall 0.286 |
 | Benford first-digit MAD | **0.00218** — close conformity |
-| Test suite | **508 tests**, including dashboard render, warehouse and review-plan checks |
+| Test suite | **519 tests**, including dashboard render, warehouse and review-plan checks |
 
 ### The most important number here is 98.2%, and it is a warning
 
@@ -578,7 +578,7 @@ AuditLens/
 │   ├── components.py            # KPI cards, risk badges, charts, tables
 │   └── views/                   # the six pages
 ├── sql/audit_queries.sql        # 15 named business queries
-├── tests/                       # 508 tests, incl. cross-process reproducibility
+├── tests/                       # 519 tests, incl. cross-process reproducibility
 ├── docs/
 │   ├── architecture.md          # design decisions, data contracts, what is deliberately excluded
 │   ├── methodology.md           # every threshold, every weight, every mistake
@@ -592,7 +592,7 @@ AuditLens/
 │   ├── notebook_content.py      # what the three notebooks contain, kept apart from the builder
 │   ├── capture_screenshots.py   # headless captures of all six dashboard pages, via DevTools Protocol
 │   └── ci_summary.py            # headline figures for the CI job summary
-├── .github/workflows/ci.yml     # pipeline + 508 tests; Ubuntu 3.11/3.12 and Windows 3.12
+├── .github/workflows/ci.yml     # pipeline + 519 tests; Ubuntu 3.11/3.12 and Windows 3.12
 └── Makefile
 ```
 
@@ -765,7 +765,7 @@ builder, so two consecutive builds are byte-identical.
 ```bash
 pip install -r requirements.txt
 python src/run_pipeline.py     # ~30 seconds, deterministic
-python -m pytest tests/ -q     # 508 tests
+python -m pytest tests/ -q     # 519 tests
 ```
 
 Two consecutive runs produce byte-identical reports under `outputs/reports/`. This is
@@ -773,11 +773,11 @@ enforced by `tests/test_reproducibility.py`, not assumed.
 
 ## Testing
 
-508 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
+519 tests. `make test` runs the lot; `make test-fast` skips the dashboard render suite.
 
 | File | Tests | What it pins down |
 |---|---|---|
-| `test_data_cleaning.py` | 93 | Repairs, full-record master integrity, source-preserving conflicts, and staged cleaning publication with failure rollback |
+| `test_data_cleaning.py` | 104 | Repairs, full-record master integrity, conflicting voucher evidence, nonfinite/overflowing amounts, and staged cleaning publication with failure rollback |
 | `test_audit_rules.py` | 38 | One class per procedure, plus mixed-size split-cluster regressions and the text-encoded-label fallback in `evaluate()` |
 | `test_benford.py` | 56 | Expected frequencies, MAD bands, χ², the per-bucket z-score, and the schema stability of the insufficient-data branch |
 | `test_risk_scoring.py` | 55 | Component scores, the noisy-OR combination, band boundaries, `risk_reasons` wording |
