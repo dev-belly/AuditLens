@@ -155,7 +155,8 @@ project was developed and how it is debugged.
 ## Quickstart
 
 ```bash
-git clone <this-repo> && cd AuditLens
+git clone https://github.com/dev-belly/AuditLens.git
+cd AuditLens
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
 
