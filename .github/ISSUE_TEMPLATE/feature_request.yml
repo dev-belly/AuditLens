@@ -1,0 +1,37 @@
+name: Feature proposal
+description: Propose a focused improvement to AuditLens.
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe one user problem and a reviewable outcome. English or Chinese is welcome.
+        Do not attach confidential data or credentials. A proposal does not imply a delivery commitment.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who needs this, what are they trying to do, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe a bounded change, example inputs and outputs, and alternatives considered.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and validation
+      description: |
+        How could a reviewer check the change? Include a small synthetic example and measurable acceptance criteria.
+        Include the generator seed, pipeline stage, a synthetic voucher example, and the affected rule or workpaper field. Distinguish rule flags, review selections, and injected labels; an alert is not a confirmed fraud finding.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Assumptions and scope
+      description: Note data availability, compatibility, computational cost and limitations. Label exploratory ideas separately from implemented behavior.
