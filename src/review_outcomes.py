@@ -8,6 +8,7 @@ reports observed counts, not a population exception or fraud estimate.
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import io
 import json
@@ -27,6 +28,30 @@ REVIEW_FIELDS = frozenset({"review_outcome", "evidence_reference", "reviewer_not
 OUTCOMES = frozenset({"exception", "no_exception", "inconclusive"})
 
 
+def _read_workpaper(contents: bytes, label: str) -> pd.DataFrame:
+    """Read every CSV field without inference, padding, or NUL truncation."""
+    stream = io.StringIO(contents.decode("utf-8-sig"), newline="")
+    reader = csv.reader(stream, strict=True)
+    rows = (row for row in reader if row)
+    try:
+        columns = next(rows, [])
+        if not columns or len(set(columns)) != len(columns):
+            raise ValueError(f"{label} workpaper needs a header with unique field names")
+        records = []
+        for row in rows:
+            if len(row) != len(columns):
+                raise ValueError(
+                    f"{label} workpaper CSV record ending on line {reader.line_num} "
+                    f"has {len(row)} fields, expected {len(columns)} fields"
+                )
+            records.append(row)
+    except csv.Error as exc:
+        raise ValueError(
+            f"invalid {label} workpaper CSV on line {reader.line_num} ({exc})"
+        ) from exc
+    return pd.DataFrame(records, columns=columns)
+
+
 def summarize_completed_review(
     completed_path: Path,
     selection_path: Path = REVIEW_PLAN_CSV,
@@ -44,16 +69,13 @@ def summarize_completed_review(
     if selection_sha != record.get("queue_sha256"):
         raise ValueError("original workpaper does not match its selection record")
 
-    original = pd.read_csv(
-        io.BytesIO(selected_bytes), dtype=str, keep_default_na=False, encoding="utf-8-sig"
-    )
+    original = _read_workpaper(selected_bytes, "original")
     completed_bytes = completed_path.read_bytes()
-    completed = pd.read_csv(
-        io.BytesIO(completed_bytes), dtype=str, keep_default_na=False, encoding="utf-8-sig"
-    )
+    completed = _read_workpaper(completed_bytes, "completed")
+    required_fields = REVIEW_FIELDS | {"transaction_id", "selection_route"}
     if (
         original.columns.tolist() != completed.columns.tolist()
-        or not REVIEW_FIELDS.issubset(original)
+        or not required_fields.issubset(original)
     ):
         raise ValueError(
             "completed workpaper must have the original columns in the original order"
@@ -67,6 +89,8 @@ def summarize_completed_review(
         if not original[column].equals(completed[column]):
             raise ValueError(f"completed workpaper changed selection field {column!r}")
 
+    if any(completed[field].str.contains("\x00", regex=False).any() for field in REVIEW_FIELDS):
+        raise ValueError("review fields cannot contain a NUL character")
     outcomes = completed["review_outcome"].str.strip().str.lower()
     invalid = sorted(set(outcomes) - OUTCOMES - {""})
     if invalid:

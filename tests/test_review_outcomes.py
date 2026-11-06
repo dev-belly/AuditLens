@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 
@@ -68,6 +69,7 @@ def test_review_results_keep_targeted_and_random_evidence_separate(workpaper):
     "column,value",
     [
         ("transaction_id", "OTHER"),
+        ("transaction_id", "T1\x00OTHER"),
         ("selection_route", "random_control"),
         ("random_inclusion_probability", "1"),
     ],
@@ -78,6 +80,19 @@ def test_review_cannot_change_the_sample_or_its_probabilities(workpaper, column,
     frame.loc[0, column] = value
     frame.to_csv(completed, index=False)
     with pytest.raises(ValueError, match="changed selection field"):
+        summarize_completed_review(completed, original, record)
+
+
+@pytest.mark.parametrize("review_fields", [["", ""], ["", "", "", "unexpected"]])
+def test_review_requires_the_exact_field_count(workpaper, review_fields):
+    original, record, completed = workpaper
+    with completed.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    rows[1][-3:] = review_fields
+    with completed.open("w", encoding="utf-8", newline="") as handle:
+        csv.writer(handle).writerows(rows)
+
+    with pytest.raises(ValueError, match="expected 16 fields"):
         summarize_completed_review(completed, original, record)
 
 
@@ -119,6 +134,7 @@ def test_outcome_counts_and_digest_use_the_same_file_snapshot(workpaper, monkeyp
     [
         ("suspected fraud", "file-1", "unrecognized"),
         ("exception", "", "evidence reference"),
+        ("exception", "file-1\x00suffix", "NUL character"),
     ],
 )
 def test_outcomes_need_an_allowed_value_and_evidence(
