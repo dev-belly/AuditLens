@@ -668,80 +668,12 @@ Stated plainly. A portfolio project that overclaims is worse than one that does 
 
 ---
 
-## Interview talking points
-
-Chinese walkthrough: [Master-data integrity: business decisions, failure recovery and interview practice](docs/MASTER_DATA_CASE.zh-CN.md). The cleaner rejects conflicting supplier/employee IDs before lossy date parsing, and stages all four cleaning outputs before publication with rollback on handled failures. This is a single-writer CLI guarantee; concurrent snapshots and crash recovery require a separate versioning contract.
-
-If you are reading this as a portfolio project, these are the things worth being able
-to defend. Each is a real decision in the code.
-
-**"Why noisy-OR instead of a weighted sum or a vote?"**
-A vote throws away intensity and needs a majority. A weighted sum lets two weak
-indicators cancel a strong one, which is wrong. Noisy-OR treats each indicator as
-independent evidence and compounds it, so two weak signals agreeing beat either alone,
-and one strong signal is never diluted by silence.
-
-**"Why is the model only 0.25 of the score when it's the most sophisticated part?"**
-Because a rule is an auditable control and a model is a ranking. An auditor can
-re-perform a rule in front of a client; they cannot re-perform a forest. The score
-should weight the evidence an auditor can defend.
-
-**"Precision 0.29 sounds bad. Why ship it?"**
-Because the alternative is not precision 1.0, it is precision 0. And precision at a
-fixed cut is the wrong question — at the top 0.5% the model is 47% precise at 15× lift,
-which is a very usable list.
-
-**"Does the model actually add anything over the rules?"**
-On this benchmark, barely — 2 anomalies that no rule caught. And I would not defend the
-model on that number, because the benchmark cannot support the claim: the anomalies were
-injected to match the rule definitions, so the rules are near-exhaustive by
-construction and any incremental detector looks useless. The model's measurable
-property is that it ranks well without labels (ROC-AUC 0.816, 15× lift at the top 0.5%).
-Whether that ranking would surface an irregularity nobody wrote a rule for is exactly
-what a benchmark with a known answer key cannot tell you. I would want a real labelled
-engagement, or a held-out anomaly family the rules were never written against, before
-making that claim.
-
-**"How do you know the model isn't just cheating?"**
-It never sees a label. `contamination = 0.03` is a review-budget assumption, not the
-true anomaly rate, and the model is trained without labels. The labels are used once,
-afterwards, to grade — and `dashboard/views/machine_learning.py` discloses exactly
-that on the page itself. There is also a test that fails if the dashboard ever renders
-a ground-truth column.
-
-**"What was the hardest bug?"**
-The generator was silently irreproducible. `rng.choice` samples by index, and one call
-site sampled from `list(some_set)` — a set of vendor-id strings, whose iteration order
-depends on `PYTHONHASHSEED`. Same seed, different ledger, every process. The full test
-suite passed the whole time because an in-process test shares one hash seed and cannot
-see it. It surfaced by diffing two pipeline runs by hand. The fix is a sorted list; the
-guard is a test that runs the generator in two subprocesses with different hash seeds —
-and that guard was verified to fail when the fix is reverted.
-
-**"You report a Benford χ² p-value of 5e-10 next to 'close conformity'. Which is it?"**
-Both, and they answer different questions. χ² tests whether the distribution is
-*exactly* Benford, which with 30,000 observations it never is — the first-two-digits test
-has 90 buckets and 30,128 observations, so it has the power to reject a departure far too
-small to act on. MAD measures whether the departure is *large enough to matter*: 0.00071
-across those 90 buckets, against 0.00218 for the first digit alone. Both sit inside
-Nigrini's close-conformity band. An auditor who acts on the p-value alone widens testing
-for no reason; the MAD is the measure that maps to the audit question.
-
-**"What would you do differently in production?"**
-Temporal validation and drift monitoring first — the current evaluation is a single
-snapshot. Then tune the thresholds from the client's actual control environment rather
-than conventions. Then instrument the review workflow: the only real measure of an
-analytics function is whether the flagged items lead to findings, and that feedback
-loop is what would let you calibrate precision and recall against reality instead of
-against a benchmark.
-
----
-
 ## Documentation
 
 | Document | Contents |
 |---|---|
 | [`docs/methodology.md`](docs/methodology.md) | Every threshold, every weight, every rule's rationale, and the eight places the first attempt was wrong |
+| [`docs/MASTER_DATA_CASE.zh-CN.md`](docs/MASTER_DATA_CASE.zh-CN.md) | Master-data consistency, failure rollback and reproducible checks |
 | [`docs/architecture.md`](docs/architecture.md) | Stage contracts, data contracts, design decisions, testing strategy |
 | `notebooks/01_eda.ipynb` | Population shape, amount distribution, seasonality, vendor concentration, data quality |
 | `notebooks/02_audit_analysis.ipynb` | The nine procedures, their precision/recall trade-off, and the full Benford analysis |
