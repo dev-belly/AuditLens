@@ -133,8 +133,8 @@ caught", not "every anomaly was caught". No rule does the latter.
 
 Independent indicators are combined as
 
-```
-combined = 1 − Π (1 − weight_i × score_i)
+```math
+\operatorname{combined} = 1 - \prod \left(1 - \operatorname{weight}_i \times \operatorname{score}_i\right)
 ```
 
 Two weak indicators pointing the same way produce a stronger signal than either

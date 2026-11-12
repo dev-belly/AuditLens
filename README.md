@@ -184,8 +184,8 @@ Requires Python 3.11+. Everything is configured through `src/utils.py` and
 Each procedure is independent, returns a score in `[0, 1]` plus a human-readable
 reason, and carries a weight. Weights are combined with **noisy-OR**, not a vote:
 
-```
-combined = 1 − Π (1 − weight_i × score_i)
+```math
+\operatorname{combined} = 1 - \prod \left(1 - \operatorname{weight}_i \times \operatorname{score}_i\right)
 ```
 
 Two weak indicators pointing the same way beat either alone; a single strong indicator
