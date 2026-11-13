@@ -14,59 +14,25 @@ and has no scheduler, because the thing it models — a journal entry testing
 engagement — is a batch process: the ledger is extracted once, analysed, and the
 findings are worked over the following weeks.
 
+```mermaid
+flowchart TD
+    A[Data generator and anomaly injection] --> B[Data cleaning]
+    B --> C[Feature engineering]
+    C --> D[Audit rules]
+    C --> E[Benford analysis]
+    C --> F[Anomaly detection]
+    D --> G[Risk scoring]
+    E --> G
+    F --> G
+    G --> H[Database and named SQL queries]
+    G --> I[Reporting and exports]
+    G --> J[Review plan and human outcomes]
+    H --> K[Streamlit dashboard]
+    J --> K
 ```
-                         ┌──────────────────────────────────────┐
-                         │  src/data_generator.py               │
-                         │  src/anomaly_injection.py            │
-                         │  Synthetic ledger: vouchers, vendors,│
-                         │  employees + injected anomalies      │
-                         └───────────────┬──────────────────────┘
-                                         │  data/raw/*.csv
-                                         ▼
-                         ┌──────────────────────────────────────┐
-                         │  src/data_cleaning.py                │
-                         │  Missing values, duplicates, invalid │
-                         │  dates/amounts, FX normalisation     │
-                         └───────────────┬──────────────────────┘
-                                         │  *_clean.parquet
-                                         │  data_quality_report.json
-                                         ▼
-                         ┌──────────────────────────────────────┐
-                         │  src/feature_engineering.py          │
-                         │  20 audit-explainable features       │
-                         └───────────────┬──────────────────────┘
-                                         │  transactions_features.parquet
-                    ┌────────────────────┼────────────────────┐
-                    ▼                    ▼                    ▼
-        ┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
-        │ src/audit_rules   │ │ src/benford       │ │ src/anomaly_      │
-        │ 9 procedures,     │ │ digit tests +     │ │ detection         │
-        │ noisy-OR combine  │ │ disaggregation    │ │ Isolation Forest  │
-        └─────────┬─────────┘ └─────────┬─────────┘ └─────────┬─────────┘
-                  │  rule flags         │  account Benford    │  anomaly score
-                  └─────────────────────┼─────────────────────┘
-                                        ▼
-                         ┌──────────────────────────────────────┐
-                         │  src/risk_scoring.py                 │
-                         │  0-100 composite + risk_reasons      │
-                         └───────────────┬──────────────────────┘
-                                         │  transactions_scored.parquet
-                                         │  vendor_risk.parquet
-                    ┌────────────────────┼────────────────────┐
-                    ▼                                         ▼
-        ┌───────────────────────┐              ┌──────────────────────────┐
-        │ src/database.py       │              │ src/reporting.py         │
-        │ SQLite warehouse      │              │ PNG charts + JSON/CSV    │
-        └───────────┬───────────┘              └──────────┬───────────────┘
-                    │  data/auditlens.db                  │  outputs/
-                    ▼                                     ▼
-        ┌───────────────────────┐              ┌──────────────────────────┐
-        │ dashboard/ (Streamlit)│              │ README, docs, notebooks  │
-        │ 6 pages               │              │                          │
-        └───────────────────────┘              └──────────────────────────┘
-                    ▲
-                    │  sql/audit_queries.sql (15 named analyst queries)
-```
+
+The table below supplies exact modules, input files and outputs. The diagram
+shows branching and convergence; each stage can also run independently.
 
 `src/run_pipeline.py` orchestrates stages 1–10 in order and prints a summary. Every
 stage is also independently runnable (`python src/benford.py`), which matters when
@@ -291,7 +257,7 @@ up in production, so it is handled in one place.
   `_banner` calls *and* the declared `total_steps`, so the numbering and the total cannot
   drift apart either. `test_documentation` also resolves every relative link and embedded
   image across the four markdown files. The README's dashboard section is six raw
-  `<img src="docs/screenshots/...">` tags, so a renamed capture turns them into broken
+  image tags (for example, the [executive overview](screenshots/01_executive_overview.png)), so a renamed capture turns them into broken
   image icons on GitHub — a *visible* defect, and a different mistake from the one
   `test_screenshots` catches: that file checks the PNGs against the capture tool, this one
   checks the README's references to them.

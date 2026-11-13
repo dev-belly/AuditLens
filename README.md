@@ -1,5 +1,7 @@
 # AuditLens
 
+[English](README.md) · [中文项目说明与 Windows 运行方法](README.zh-CN.md)
+
 [![CI](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-belly/AuditLens/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -83,57 +85,26 @@ what an earlier version of this project's own summary implied.
 
 ## Architecture
 
+```mermaid
+flowchart TD
+    A[Seeded ledger and reference tables] --> B[Data cleaning and quality report]
+    B --> C[Twenty explainable features]
+    C --> D[Nine audit procedures]
+    C --> E[Benford digit analysis]
+    C --> F[Isolation Forest]
+    D --> G[Composite risk and reasons]
+    E --> G
+    F --> G
+    G --> H[SQLite warehouse]
+    G --> I[Review plan and workpaper]
+    G --> J[Charts and exported reports]
+    H --> K[Streamlit review interface]
+    I --> K
 ```
-                        ┌──────────────────────────────┐
-                        │  src/data_generator.py       │   seeded, reproducible
-                        │  30,000 vouchers + 420       │   log-normal amounts,
-                        │  vendors + 140 employees     │   working calendar,
-                        └──────────────┬───────────────┘   vendor lifecycle
-                                       │
-                        ┌──────────────▼───────────────┐
-                        │  data/raw/*.csv              │   deliberately dirty:
-                        │  30,223 rows                 │   dupes, bad dates,
-                        └──────────────┬───────────────┘   unbalanced, orphans
-                                       │
-   ┌───────────────────────────────────▼───────────────────────────────────┐
-   │  src/data_cleaning.py                                                 │
-   │  repair what is safe to repair, flag what is itself the finding       │
-   │  → DataQualityReport: 285 issues, every one of them reported          │
-   └───────────────────────────────────┬───────────────────────────────────┘
-                                       │  30,128 clean vouchers
-                        ┌──────────────▼───────────────┐
-                        │ src/feature_engineering.py   │  20 features, each one
-                        │                              │  expressible as an audit
-                        └──────────────┬───────────────┘  question
-                                       │
-        ┌──────────────────────────────┼──────────────────────────────┐
-        │                              │                              │
-┌───────▼────────┐          ┌──────────▼─────────┐          ┌─────────▼────────┐
-│ audit_rules.py │          │ anomaly_detection  │          │    benford.py    │
-│  9 independent │          │  IsolationForest   │          │  first digit +   │
-│  procedures    │          │  + StandardScaler  │          │  first two, MAD, │
-│  noisy-OR       │          │  unsupervised      │          │  χ², per-bucket z│
-└───────┬────────┘          └──────────┬─────────┘          └─────────┬────────┘
-        │  rule_risk 0.40              │  ml_risk 0.25                │ statistical 0.10
-        │                              │                              │
-        └──────────────────────────────┼──────────────────────────────┘
-                                       │
-                        ┌──────────────▼───────────────┐
-                        │  src/risk_scoring.py         │  + vendor_risk 0.15
-                        │  Audit Risk Score 0-100      │  + amount_risk 0.10
-                        │  + risk_reasons for every    │
-                        │    single flagged voucher    │
-                        └──────────────┬───────────────┘
-                                       │
-        ┌──────────────────────────────┼──────────────────────────────┐
-        │                              │                              │
-┌───────▼────────┐          ┌──────────▼─────────┐          ┌─────────▼────────┐
-│ database.py    │          │   reporting.py     │          │  dashboard/      │
-│ SQLite         │          │   10 matplotlib    │          │  6-page          │
-│ auditlens.db   │          │   charts           │          │  Streamlit app   │
-│ 15 SQL queries │          │                    │          │                  │
-└────────────────┘          └────────────────────┘          └──────────────────┘
-```
+
+The three analysis branches use the same cleaned feature population. Ground-truth
+labels are reserved for evaluation; they are not part of the review interface.
+[Stage responsibilities and data contracts](docs/architecture.md#stage-by-stage-responsibilities).
 
 `src/run_pipeline.py` runs all ten stages in ~30 seconds. Each stage is independently
 runnable (`python src/audit_rules.py`, `python src/benford.py`, …), which is how the
