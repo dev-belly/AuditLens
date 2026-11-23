@@ -25,6 +25,15 @@ runs the pipeline twice on every push and fails if the reports differ.
 
 ---
 
+## Audit review workbench
+
+Explore the 300-voucher review plan by risk, selection route and supplier, then inspect the evidence for a voucher.
+
+[Workbench files](docs/workbench/)
+
+Open `docs/workbench/index.html` from a checkout to filter, drill into a record, and export CSV or JSON offline.
+Run `python docs/workbench/build_data.py --check` to verify the browser snapshot.
+
 ## What this is, and what it is not
 
 **It is** an end-to-end analytics pipeline that treats audit analytics as an
