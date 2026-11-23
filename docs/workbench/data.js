@@ -106,7 +106,7 @@ window.workbenchData = {
       "mode": "group",
       "group": "route",
       "format": "integer",
-      "caption": "按当前筛选统计凭证数量。点击条形可以筛选入选路径。"
+      "caption": "分布随搜索和风险层级更新。点击条形切换入选路径。"
     },
     {
       "id": "risk",
@@ -115,7 +115,7 @@ window.workbenchData = {
       "mode": "group",
       "group": "risk",
       "format": "integer",
-      "caption": "统计复核计划内的凭证。点击条形可以选择或取消风险等级。"
+      "caption": "分布随搜索和入选路径更新。点击条形切换风险等级。"
     }
   ],
   "sourceNote": "凭证、供应商和异常均来自仓库的合成数据。风险分用于排序，凭证的最终处理仍需核对底稿与原始证据。",
